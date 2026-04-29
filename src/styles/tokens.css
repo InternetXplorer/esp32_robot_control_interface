@@ -1,0 +1,24 @@
+:root {
+  color-scheme: light;
+  font-family:
+    'Space Grotesk',
+    'Avenir Next',
+    'Segoe UI',
+    sans-serif;
+  --bg-top: #f6efe2;
+  --bg-bottom: #dce8e0;
+  --surface: rgba(255, 255, 255, 0.54);
+  --surface-strong: rgba(255, 255, 255, 0.88);
+  --border: rgba(23, 34, 43, 0.12);
+  --border-strong: rgba(23, 34, 43, 0.16);
+  --text: #17222b;
+  --text-muted: #54606b;
+  --text-subtle: #73808d;
+  --text-on-accent: #fdf9f4;
+  --accent: #1f6f5f;
+  --danger: #d94435;
+  --danger-strong: #8e2218;
+  --shadow-card: 0 1rem 2.5rem rgba(26, 39, 53, 0.12);
+  --shadow-soft: 0 0.5rem 1.25rem rgba(26, 39, 53, 0.08);
+}
+

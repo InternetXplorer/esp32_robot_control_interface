@@ -1,0 +1,33 @@
+.shell {
+  min-height: 100vh;
+  padding: 1rem 1rem 7rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.banner {
+  padding: 0.9rem 1rem;
+  border-radius: 1rem;
+  background: rgba(255, 120, 84, 0.16);
+  color: var(--danger-strong);
+  border: 1px solid rgba(217, 68, 53, 0.22);
+}
+
+.controlCard {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(23, 34, 43, 0.08);
+  box-shadow: var(--shadow-card);
+}
+
+.sectionLabel {
+  margin: 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+

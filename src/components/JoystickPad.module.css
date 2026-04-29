@@ -1,0 +1,82 @@
+.shell {
+  display: grid;
+  gap: 1rem;
+}
+
+.pad {
+  position: relative;
+  aspect-ratio: 1;
+  width: min(100%, 24rem);
+  margin: 0 auto;
+  border-radius: 1.75rem;
+  border: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0)),
+    radial-gradient(circle at center, rgba(31, 111, 95, 0.16), rgba(31, 111, 95, 0.04));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), var(--shadow-card);
+  touch-action: none;
+  overflow: hidden;
+}
+
+.disabled {
+  opacity: 0.5;
+}
+
+.guide {
+  position: absolute;
+  background: rgba(23, 34, 43, 0.1);
+}
+
+.guideHorizontal {
+  top: 50%;
+  left: 1rem;
+  right: 1rem;
+  height: 1px;
+}
+
+.guideVertical {
+  left: 50%;
+  top: 1rem;
+  bottom: 1rem;
+  width: 1px;
+}
+
+.thumb {
+  position: absolute;
+  width: 5.75rem;
+  height: 5.75rem;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background:
+    radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 35%),
+    linear-gradient(180deg, #f6b05f, #e9724c);
+  box-shadow: 0 1rem 2rem rgba(233, 114, 76, 0.35);
+}
+
+.readout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.tile {
+  padding: 0.875rem;
+  border-radius: 1rem;
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-soft);
+}
+
+.label {
+  margin: 0 0 0.35rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.value {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 800;
+}
+
