@@ -3,12 +3,16 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+const repoName = process.env.GITHUB_REPOSITORY?.split('/')[1];
+const base = process.env.GITHUB_ACTIONS === 'true' && repoName ? `/${repoName}/` : '/';
+
 export default defineConfig({
+  base,
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icons/icon-192.svg', 'icons/icon-512.svg', 'icons/maskable-512.svg'],
+      includeAssets: ['favicon.svg', 'icons/icon-192.svg', 'icons/icon-512.svg', 'icons/maskable-512.svg'],
       manifest: {
         name: 'BiMotor Control',
         short_name: 'BiMotor',
@@ -17,20 +21,21 @@ export default defineConfig({
         background_color: '#f5f1e8',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
+        start_url: base,
+        scope: base,
         icons: [
           {
-            src: '/icons/icon-192.svg',
+            src: `${base}icons/icon-192.svg`,
             sizes: '192x192',
             type: 'image/svg+xml'
           },
           {
-            src: '/icons/icon-512.svg',
+            src: `${base}icons/icon-512.svg`,
             sizes: '512x512',
             type: 'image/svg+xml'
           },
           {
-            src: '/icons/maskable-512.svg',
+            src: `${base}icons/maskable-512.svg`,
             sizes: '512x512',
             type: 'image/svg+xml',
             purpose: 'maskable'
