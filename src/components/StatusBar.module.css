@@ -55,3 +55,20 @@
   font-weight: 700;
 }
 
+.commandValue {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.motorValue {
+  display: inline-block;
+  min-width: 4ch;
+  text-align: right;
+}
+
+.separator {
+  flex: 0 0 auto;
+}
