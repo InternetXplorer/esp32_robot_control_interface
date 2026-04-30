@@ -11,6 +11,11 @@ body,
   min-height: 100%;
 }
 
+html,
+body {
+  overscroll-behavior-y: none;
+}
+
 body {
   background:
     radial-gradient(circle at top, rgba(255, 209, 102, 0.32), rgba(255, 209, 102, 0) 28%),
@@ -31,4 +36,3 @@ button:disabled,
 input:disabled {
   cursor: not-allowed;
 }
-

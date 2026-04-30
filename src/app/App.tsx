@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { WebBleMotorClient } from '../ble/client';
 import { BleClientError } from '../ble/errors';
 import { CommandRateLimiter } from '../domain/rateLimiter';
+import { zeroCommand } from '../domain/motor';
 import { useControllerStore } from '../state/controllerStore';
 import { ConnectionPanel } from '../components/ConnectionPanel';
 import { JoystickPad } from '../components/JoystickPad';
@@ -108,14 +109,14 @@ export const App = () => {
     const stopForVisibility = () => {
       if (document.visibilityState === 'hidden' && isConnected) {
         emergencyResetUi();
-        void bleClient.emergencyStop().catch(() => undefined);
+        rateLimiter.setDesired(zeroCommand());
       }
     };
 
     const stopForExit = () => {
       if (isConnected) {
         emergencyResetUi();
-        void bleClient.emergencyStop().catch(() => undefined);
+        rateLimiter.setDesired(zeroCommand());
       }
     };
 
@@ -174,28 +175,14 @@ export const App = () => {
 
   const stop = async () => {
     emergencyResetUi();
-    if (isConnected) {
-      try {
-        await bleClient.emergencyStop();
-      } catch (error) {
-        setDisconnected(error instanceof BleClientError ? error.category : 'write-failed');
-      }
-    }
   };
 
-  const switchMode = async (nextMode: 'drive' | 'direct') => {
+  const switchMode = (nextMode: 'drive' | 'direct') => {
     if (nextMode === mode) {
       return;
     }
 
     setMode(nextMode);
-    if (isConnected) {
-      try {
-        await bleClient.emergencyStop();
-      } catch (error) {
-        setDisconnected(error instanceof BleClientError ? error.category : 'write-failed');
-      }
-    }
   };
 
   return (
@@ -222,7 +209,7 @@ export const App = () => {
       />
       <section className={styles.controlCard}>
         <p className={styles.sectionLabel}>Control Mode</p>
-        <ModeToggle mode={mode} disabled={!isConnected} onModeChange={(nextMode) => void switchMode(nextMode)} />
+        <ModeToggle mode={mode} disabled={!isConnected} onModeChange={switchMode} />
         {mode === 'drive' ? (
           <JoystickPad
             disabled={!isConnected}

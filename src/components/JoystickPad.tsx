@@ -70,6 +70,7 @@ export const JoystickPad = ({ disabled, resetToken, onCommandChange }: Props) =>
             return;
           }
 
+          event.preventDefault();
           activePointerId.current = event.pointerId;
           event.currentTarget.setPointerCapture(event.pointerId);
           updateFromPointer(event.clientX, event.clientY);
@@ -78,6 +79,7 @@ export const JoystickPad = ({ disabled, resetToken, onCommandChange }: Props) =>
           if (disabled || activePointerId.current !== event.pointerId) {
             return;
           }
+          event.preventDefault();
           updateFromPointer(event.clientX, event.clientY);
         }}
         onPointerUp={(event) => {
@@ -114,4 +116,3 @@ export const JoystickPad = ({ disabled, resetToken, onCommandChange }: Props) =>
     </section>
   );
 };
-

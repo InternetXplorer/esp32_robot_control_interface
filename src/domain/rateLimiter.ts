@@ -14,6 +14,7 @@ export class CommandRateLimiter {
   private pending: DriveCommand | null = null;
   private lastSent: DriveCommand | null = null;
   private inFlight = false;
+  private generation = 0;
 
   constructor(options: RateLimiterOptions) {
     this.intervalMs = options.intervalMs;
@@ -29,7 +30,7 @@ export class CommandRateLimiter {
     this.pending = command;
 
     if (isZeroCommand(command)) {
-      void this.flushNow();
+      void this.flushTick();
       return;
     }
 
@@ -49,13 +50,10 @@ export class CommandRateLimiter {
   }
 
   stop(): void {
-    if (this.timer !== null) {
-      window.clearInterval(this.timer);
-      this.timer = null;
-    }
+    this.generation += 1;
+    this.stopTimer();
     this.pending = null;
     this.lastSent = null;
-    this.inFlight = false;
   }
 
   private async flushTick(): Promise<void> {
@@ -77,26 +75,43 @@ export class CommandRateLimiter {
       this.lastSent.right === command.right
     ) {
       if (isZeroCommand(command)) {
-        this.stop();
+        this.stopTimer();
       }
       return;
     }
 
+    const generation = this.generation;
     this.inFlight = true;
     try {
       await this.send(command);
+      if (generation !== this.generation) {
+        return;
+      }
       this.lastSent = command;
       if (this.pending?.left === command.left && this.pending.right === command.right) {
         this.pending = null;
       }
-      if (isZeroCommand(command)) {
-        this.stop();
+      if (isZeroCommand(command) && this.pending === null) {
+        this.stopTimer();
       }
     } catch (error) {
+      if (generation !== this.generation) {
+        return;
+      }
       this.stop();
       this.onError?.(error);
     } finally {
       this.inFlight = false;
+      if (this.pending !== null) {
+        void this.flushTick();
+      }
+    }
+  }
+
+  private stopTimer(): void {
+    if (this.timer !== null) {
+      window.clearInterval(this.timer);
+      this.timer = null;
     }
   }
 }
