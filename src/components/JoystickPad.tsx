@@ -25,12 +25,45 @@ export const JoystickPad = ({ disabled, resetToken, onCommandChange }: Props) =>
   const activePointerId = useRef<number | null>(null);
   const [thumb, setThumb] = useState<ThumbState>(centeredThumb);
   const [command, setCommand] = useState<DriveCommand>(zeroCommand());
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     activePointerId.current = null;
+    setIsDragging(false);
     setThumb(centeredThumb);
     setCommand(zeroCommand());
   }, [resetToken]);
+
+  useEffect(() => {
+    if (!isDragging) {
+      return;
+    }
+
+    const { body, documentElement } = document;
+    const previousBodyOverflow = body.style.overflow;
+    const previousHtmlOverflow = documentElement.style.overflow;
+    const previousBodyTouchAction = body.style.touchAction;
+    const previousHtmlTouchAction = documentElement.style.touchAction;
+
+    body.style.overflow = 'hidden';
+    documentElement.style.overflow = 'hidden';
+    body.style.touchAction = 'none';
+    documentElement.style.touchAction = 'none';
+
+    const preventScroll = (event: TouchEvent) => {
+      event.preventDefault();
+    };
+
+    document.addEventListener('touchmove', preventScroll, { passive: false });
+
+    return () => {
+      document.removeEventListener('touchmove', preventScroll);
+      body.style.overflow = previousBodyOverflow;
+      documentElement.style.overflow = previousHtmlOverflow;
+      body.style.touchAction = previousBodyTouchAction;
+      documentElement.style.touchAction = previousHtmlTouchAction;
+    };
+  }, [isDragging]);
 
   const updateFromPointer = (clientX: number, clientY: number) => {
     const pad = padRef.current;
@@ -54,6 +87,7 @@ export const JoystickPad = ({ disabled, resetToken, onCommandChange }: Props) =>
 
   const reset = () => {
     activePointerId.current = null;
+    setIsDragging(false);
     setThumb(centeredThumb);
     const stopped = zeroCommand();
     setCommand(stopped);
@@ -72,6 +106,7 @@ export const JoystickPad = ({ disabled, resetToken, onCommandChange }: Props) =>
 
           event.preventDefault();
           activePointerId.current = event.pointerId;
+          setIsDragging(true);
           event.currentTarget.setPointerCapture(event.pointerId);
           updateFromPointer(event.clientX, event.clientY);
         }}
