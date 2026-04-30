@@ -56,19 +56,28 @@
 }
 
 .commandValue {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 4ch) auto minmax(0, 4ch);
   align-items: baseline;
-  flex-wrap: nowrap;
+  justify-content: center;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+  width: 100%;
+  text-align: center;
 }
 
 .motorValue {
-  display: inline-block;
-  min-width: 4ch;
+  min-width: 0;
   text-align: right;
 }
 
 .separator {
-  flex: 0 0 auto;
+  text-align: center;
+}
+
+@media (max-width: 420px) {
+  .commandValue {
+    grid-template-columns: minmax(0, 3ch) auto minmax(0, 3ch);
+    font-size: 0.92rem;
+  }
 }

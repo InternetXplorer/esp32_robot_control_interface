@@ -41,7 +41,7 @@ export const StatusBar = ({
           <p className={styles.label}>Left / Right</p>
           <p className={`${styles.value} ${styles.commandValue}`}>
             <span className={styles.motorValue}>{command.left}</span>
-            <span className={styles.separator}> / </span>
+            <span className={styles.separator}>/</span>
             <span className={styles.motorValue}>{command.right}</span>
           </p>
         </div>
