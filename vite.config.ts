@@ -14,9 +14,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icons/icon-192.svg', 'icons/icon-512.svg', 'icons/maskable-512.svg'],
       manifest: {
-        name: 'BiMotor Control',
-        short_name: 'BiMotor',
-        description: 'Web Bluetooth controller for the BiMotor Car ESP32-C6.',
+        name: 'Wheeled Robot Control',
+        short_name: 'Wheeled Robot',
+        description: 'Web Bluetooth controller for the Wheeled Robot ESP32-C6.',
         theme_color: '#1f6f5f',
         background_color: '#f5f1e8',
         display: 'standalone',

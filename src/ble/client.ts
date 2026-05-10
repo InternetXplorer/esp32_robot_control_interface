@@ -1,13 +1,12 @@
 import {
+  COMMAND_CHARACTERISTIC_UUID,
   DEVICE_NAME_HINT,
-  LEFT_MOTOR_CHARACTERISTIC_UUID,
   MOTOR_SERVICE_UUID,
-  REQUEST_DEVICE_OPTIONS,
-  RIGHT_MOTOR_CHARACTERISTIC_UUID
+  REQUEST_DEVICE_OPTIONS
 } from './constants';
 import { BleClientError, normalizeBleError } from './errors';
-import { encodeMotorValue } from '../domain/encode';
-import { clampMotorValue, DriveCommand } from '../domain/motor';
+import { encodeDriveCommand } from '../domain/encode';
+import { DriveCommand } from '../domain/motor';
 
 export interface BleMotorClient {
   isSupported(): boolean;
@@ -31,8 +30,7 @@ const debug = (...args: unknown[]): void => {
 export class WebBleMotorClient implements BleMotorClient {
   private device: BluetoothDevice | null = null;
   private server: BluetoothRemoteGATTServer | null = null;
-  private leftCharacteristic: BluetoothRemoteGATTCharacteristic | null = null;
-  private rightCharacteristic: BluetoothRemoteGATTCharacteristic | null = null;
+  private commandCharacteristic: BluetoothRemoteGATTCharacteristic | null = null;
   private listeners = new Set<() => void>();
   private suppressDisconnectEvent = false;
 
@@ -127,16 +125,14 @@ export class WebBleMotorClient implements BleMotorClient {
   }
 
   async writeCommand(command: DriveCommand): Promise<void> {
-    if (!this.server?.connected || !this.leftCharacteristic || !this.rightCharacteristic) {
+    if (!this.server?.connected || !this.commandCharacteristic) {
       throw new BleClientError('gatt-disconnected', 'Device is not connected.');
     }
 
     try {
-      const left = clampMotorValue(command.left);
-      const right = clampMotorValue(command.right);
-      debug('write', { left, right });
-      await this.leftCharacteristic.writeValue(encodeMotorValue(left));
-      await this.rightCharacteristic.writeValue(encodeMotorValue(right));
+      const packet = encodeDriveCommand(command);
+      debug('write', { command, packet: Array.from(new Uint8Array(packet)) });
+      await this.commandCharacteristic.writeValue(packet);
     } catch (error) {
       debug('write failure', error);
       this.clearSession();
@@ -182,12 +178,10 @@ export class WebBleMotorClient implements BleMotorClient {
     }
 
     const service = await server.getPrimaryService(MOTOR_SERVICE_UUID);
-    const leftCharacteristic = await service.getCharacteristic(LEFT_MOTOR_CHARACTERISTIC_UUID);
-    const rightCharacteristic = await service.getCharacteristic(RIGHT_MOTOR_CHARACTERISTIC_UUID);
+    const commandCharacteristic = await service.getCharacteristic(COMMAND_CHARACTERISTIC_UUID);
 
     this.server = server;
-    this.leftCharacteristic = leftCharacteristic;
-    this.rightCharacteristic = rightCharacteristic;
+    this.commandCharacteristic = commandCharacteristic;
     debug('connected');
   }
 
@@ -207,8 +201,7 @@ export class WebBleMotorClient implements BleMotorClient {
       this.device.removeEventListener('gattserverdisconnected', this.handleDisconnected);
     }
     this.server = null;
-    this.leftCharacteristic = null;
-    this.rightCharacteristic = null;
+    this.commandCharacteristic = null;
     this.device = null;
     this.suppressDisconnectEvent = false;
   }

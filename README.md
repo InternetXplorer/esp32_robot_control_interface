@@ -1,6 +1,6 @@
-# BiMotor Control PWA
+# Wheeled Robot Control PWA
 
-Mobile-first React + TypeScript + Vite PWA for controlling the `BiMotor Car` ESP32-C6 over Web Bluetooth from Android Chrome.
+Mobile-first React + TypeScript + Vite PWA for controlling the `Wheeled Robot` ESP32-C6 over Web Bluetooth from Android Chrome.
 
 ## Stack
 
@@ -12,11 +12,11 @@ Mobile-first React + TypeScript + Vite PWA for controlling the `BiMotor Car` ESP
 
 ## BLE contract
 
-- Device hint: `BiMotor Car`
-- Service UUID: `12345678-1234-5678-9abc-def012345678`
-- Left characteristic UUID: `12345678-1234-5678-9abc-def012345679`
-- Right characteristic UUID: `12345678-1234-5678-9abc-def012345680`
-- Each write is a signed `i16` in little-endian, clamped app-side to `-100..100`
+- Device hint: `Wheeled Robot`
+- Service UUID: `12345678-1234-5678-9abc-def012345700`
+- Command characteristic UUID: `12345678-1234-5678-9abc-def012345701`
+- Stop packet: `00`
+- Drive packet: `01 + left_i16_le + right_i16_le`, clamped app-side to `-100..100`
 
 ## Scripts
 
