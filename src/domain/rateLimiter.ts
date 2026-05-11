@@ -10,11 +10,13 @@ export class CommandRateLimiter {
   private readonly intervalMs: number;
   private readonly send: (command: DriveCommand) => Promise<void>;
   private onError?: (error: unknown) => void;
-  private timer: number | null = null;
+  private timer: ReturnType<typeof globalThis.setTimeout> | null = null;
+  private scheduledAt = 0;
   private pending: DriveCommand | null = null;
   private lastSent: DriveCommand | null = null;
   private inFlight = false;
   private generation = 0;
+  private nextAllowedAt = 0;
 
   constructor(options: RateLimiterOptions) {
     this.intervalMs = options.intervalMs;
@@ -30,15 +32,11 @@ export class CommandRateLimiter {
     this.pending = command;
 
     if (isZeroCommand(command)) {
-      void this.flushTick();
+      this.scheduleFlush(0);
       return;
     }
 
-    if (this.timer === null) {
-      this.timer = window.setInterval(() => {
-        void this.flushTick();
-      }, this.intervalMs);
-    }
+    this.scheduleFlush(this.getDelayUntilAllowed());
   }
 
   async flushNow(): Promise<void> {
@@ -54,6 +52,7 @@ export class CommandRateLimiter {
     this.stopTimer();
     this.pending = null;
     this.lastSent = null;
+    this.nextAllowedAt = 0;
   }
 
   private async flushTick(): Promise<void> {
@@ -74,6 +73,9 @@ export class CommandRateLimiter {
       this.lastSent.left === command.left &&
       this.lastSent.right === command.right
     ) {
+      if (this.pending?.left === command.left && this.pending.right === command.right) {
+        this.pending = null;
+      }
       if (isZeroCommand(command)) {
         this.stopTimer();
       }
@@ -87,6 +89,7 @@ export class CommandRateLimiter {
       if (generation !== this.generation) {
         return;
       }
+      this.nextAllowedAt = Date.now() + this.intervalMs;
       this.lastSent = command;
       if (this.pending?.left === command.left && this.pending.right === command.right) {
         this.pending = null;
@@ -103,15 +106,39 @@ export class CommandRateLimiter {
     } finally {
       this.inFlight = false;
       if (this.pending !== null) {
-        void this.flushTick();
+        this.scheduleFlush(isZeroCommand(this.pending) ? 0 : this.getDelayUntilAllowed());
       }
     }
   }
 
+  private getDelayUntilAllowed(): number {
+    return Math.max(0, this.nextAllowedAt - Date.now());
+  }
+
+  private scheduleFlush(delayMs: number): void {
+    if (this.inFlight) {
+      return;
+    }
+
+    const targetTime = Date.now() + delayMs;
+    if (this.timer !== null && this.scheduledAt <= targetTime) {
+      return;
+    }
+
+    this.stopTimer();
+    this.scheduledAt = targetTime;
+    this.timer = globalThis.setTimeout(() => {
+      this.timer = null;
+      this.scheduledAt = 0;
+      void this.flushTick();
+    }, delayMs);
+  }
+
   private stopTimer(): void {
     if (this.timer !== null) {
-      window.clearInterval(this.timer);
+      globalThis.clearTimeout(this.timer);
       this.timer = null;
     }
+    this.scheduledAt = 0;
   }
 }

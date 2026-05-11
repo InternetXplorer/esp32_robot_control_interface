@@ -27,7 +27,7 @@ export const StatusBar = ({
     <header className={styles.bar}>
       <div className={styles.topline}>
         <div>
-          <p className={styles.eyebrow}>BiMotor Car</p>
+          <p className={styles.eyebrow}>Wheeled Robot</p>
           <p className={styles.status}>{isConnected ? 'Connected' : 'Disconnected'}</p>
         </div>
         <p className={styles.eyebrow}>Android Chrome</p>

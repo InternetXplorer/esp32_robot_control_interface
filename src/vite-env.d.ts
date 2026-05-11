@@ -2,6 +2,12 @@
 /// <reference types="vite-plugin-pwa/client" />
 
 declare global {
+  const __APP_BUILD_INFO__: {
+    version: string;
+    branch: string;
+    commit: string;
+  };
+
   interface RequestDeviceOptions {
     filters?: BluetoothLEScanFilter[];
     optionalServices?: BluetoothServiceUUID[];
