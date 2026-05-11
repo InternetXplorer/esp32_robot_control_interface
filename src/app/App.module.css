@@ -3,6 +3,7 @@
   padding: 1rem 1rem 7rem;
   display: grid;
   gap: 1rem;
+  align-content: start;
 }
 
 .banner {
@@ -31,3 +32,11 @@
   color: var(--text-muted);
 }
 
+.buildInfo {
+  margin: 0;
+  padding-bottom: 1rem;
+  text-align: center;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}

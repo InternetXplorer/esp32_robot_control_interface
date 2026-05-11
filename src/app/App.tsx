@@ -12,6 +12,8 @@ import { StatusBar } from '../components/StatusBar';
 import { StopButton } from '../components/StopButton';
 import styles from './App.module.css';
 
+const buildInfo = __APP_BUILD_INFO__;
+
 const bleClient = new WebBleMotorClient();
 const rateLimiter = new CommandRateLimiter({
   intervalMs: 50,
@@ -225,6 +227,9 @@ export const App = () => {
         )}
       </section>
       <StopButton onPress={() => void stop()} />
+      <footer className={styles.buildInfo}>
+        v{buildInfo.version} - {buildInfo.branch} - {buildInfo.commit}
+      </footer>
     </main>
   );
 };

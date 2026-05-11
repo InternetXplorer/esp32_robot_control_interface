@@ -1,13 +1,32 @@
 /// <reference types="vitest/config" />
+import { execSync } from 'node:child_process';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import packageJson from './package.json';
 
 const repoName = process.env.GITHUB_REPOSITORY?.split('/')[1];
 const base = process.env.GITHUB_ACTIONS === 'true' && repoName ? `/${repoName}/` : '/';
 
+const readGitValue = (command: string) => {
+  try {
+    return execSync(command, { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+  } catch {
+    return 'unknown';
+  }
+};
+
+const buildInfo = {
+  version: packageJson.version,
+  branch: process.env.GITHUB_REF_NAME ?? readGitValue('git rev-parse --abbrev-ref HEAD'),
+  commit: (process.env.GITHUB_SHA ?? readGitValue('git rev-parse HEAD')).slice(0, 7)
+};
+
 export default defineConfig({
   base,
+  define: {
+    __APP_BUILD_INFO__: JSON.stringify(buildInfo)
+  },
   plugins: [
     react(),
     VitePWA({
