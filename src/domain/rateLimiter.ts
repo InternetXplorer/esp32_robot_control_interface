@@ -10,7 +10,7 @@ export class CommandRateLimiter {
   private readonly intervalMs: number;
   private readonly send: (command: DriveCommand) => Promise<void>;
   private onError?: (error: unknown) => void;
-  private timer: number | null = null;
+  private timer: ReturnType<typeof globalThis.setTimeout> | null = null;
   private scheduledAt = 0;
   private pending: DriveCommand | null = null;
   private lastSent: DriveCommand | null = null;
