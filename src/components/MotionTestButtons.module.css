@@ -7,9 +7,9 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   grid-template-areas:
-    ". forward ."
+    "forward forward forward"
     "rotate-left . rotate-right"
-    ". backward .";
+    "backward backward backward";
   gap: 0.75rem;
 }
 
@@ -33,6 +33,7 @@
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+  min-width: 0;
 }
 
 .button:disabled {
@@ -81,6 +82,8 @@
 
 .forward {
   grid-area: forward;
+  justify-self: center;
+  width: min(13rem, 100%);
 }
 
 .rotateLeft {
@@ -93,15 +96,23 @@
 
 .backward {
   grid-area: backward;
+  justify-self: center;
+  width: min(13rem, 100%);
 }
 
 .label {
   font-size: 1rem;
   font-weight: 800;
+  max-width: 100%;
+  text-align: center;
+  overflow-wrap: anywhere;
 }
 
 .values {
   color: var(--text-muted);
   font-size: 0.85rem;
   font-weight: 700;
+  max-width: 100%;
+  text-align: center;
+  overflow-wrap: anywhere;
 }
