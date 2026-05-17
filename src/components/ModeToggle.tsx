@@ -29,6 +29,15 @@ export const ModeToggle = ({ mode, disabled, onModeChange }: Props) => (
     >
       Direct
     </button>
+    <button
+      className={`${styles.button} ${mode === 'test' ? styles.active : ''}`}
+      disabled={disabled}
+      onClick={() => onModeChange('test')}
+      role="tab"
+      aria-selected={mode === 'test'}
+      type="button"
+    >
+      Test
+    </button>
   </div>
 );
-

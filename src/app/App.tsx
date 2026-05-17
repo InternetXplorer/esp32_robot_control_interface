@@ -7,6 +7,7 @@ import { useControllerStore } from '../state/controllerStore';
 import { ConnectionPanel } from '../components/ConnectionPanel';
 import { JoystickPad } from '../components/JoystickPad';
 import { ModeToggle } from '../components/ModeToggle';
+import { MotionTestButtons } from '../components/MotionTestButtons';
 import { MotorSliders } from '../components/MotorSliders';
 import { StatusBar } from '../components/StatusBar';
 import { StopButton } from '../components/StopButton';
@@ -179,7 +180,7 @@ export const App = () => {
     emergencyResetUi();
   };
 
-  const switchMode = (nextMode: 'drive' | 'direct') => {
+  const switchMode = (nextMode: typeof mode) => {
     if (nextMode === mode) {
       return;
     }
@@ -218,8 +219,14 @@ export const App = () => {
             resetToken={resetToken}
             onCommandChange={setDesiredCommand}
           />
-        ) : (
+        ) : mode === 'direct' ? (
           <MotorSliders
+            disabled={!isConnected}
+            resetToken={resetToken}
+            onCommandChange={setDesiredCommand}
+          />
+        ) : (
+          <MotionTestButtons
             disabled={!isConnected}
             resetToken={resetToken}
             onCommandChange={setDesiredCommand}

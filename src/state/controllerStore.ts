@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { BleErrorCategory, getErrorMessage } from '../ble/errors';
 import { DriveCommand, zeroCommand } from '../domain/motor';
 
-export type ControlMode = 'drive' | 'direct';
+export type ControlMode = 'drive' | 'direct' | 'test';
 export type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'disconnecting';
 
 type SupportState = {
@@ -80,4 +80,3 @@ export const useControllerStore = create<ControllerState>((set) => ({
   clearBanner: () => set({ bannerMessage: null }),
   clearError: () => set({ errorCategory: null })
 }));
-
