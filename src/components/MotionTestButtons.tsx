@@ -11,15 +11,40 @@ type Props = {
 type TestAction = {
   id: string;
   label: string;
+  layoutClassName: string;
   leftDirection: -1 | 1;
   rightDirection: -1 | 1;
 };
 
 const actions: TestAction[] = [
-  { id: 'forward', label: 'Forward', leftDirection: 1, rightDirection: 1 },
-  { id: 'backward', label: 'Backward', leftDirection: -1, rightDirection: -1 },
-  { id: 'rotate-left', label: 'Rotate left', leftDirection: -1, rightDirection: 1 },
-  { id: 'rotate-right', label: 'Rotate right', leftDirection: 1, rightDirection: -1 }
+  {
+    id: 'forward',
+    label: 'Forward',
+    layoutClassName: styles.forward,
+    leftDirection: 1,
+    rightDirection: 1
+  },
+  {
+    id: 'rotate-left',
+    label: 'Rotate left',
+    layoutClassName: styles.rotateLeft,
+    leftDirection: -1,
+    rightDirection: 1
+  },
+  {
+    id: 'rotate-right',
+    label: 'Rotate right',
+    layoutClassName: styles.rotateRight,
+    leftDirection: 1,
+    rightDirection: -1
+  },
+  {
+    id: 'backward',
+    label: 'Backward',
+    layoutClassName: styles.backward,
+    leftDirection: -1,
+    rightDirection: -1
+  }
 ];
 
 const buildCommand = (action: TestAction, speed: number): DriveCommand => ({
@@ -87,7 +112,9 @@ export const MotionTestButtons = ({ disabled, resetToken, onCommandChange }: Pro
           return (
             <button
               key={action.id}
-              className={`${styles.button} ${activeActionId === action.id ? styles.active : ''}`}
+              className={`${styles.button} ${action.layoutClassName} ${
+                activeActionId === action.id ? styles.active : ''
+              }`}
               disabled={disabled}
               onBlur={stopAction}
               onKeyDown={(event) => {
