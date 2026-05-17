@@ -10,6 +10,12 @@ type Props = {
   isSupported: boolean;
 };
 
+const modeLabels: Record<ControlMode, string> = {
+  drive: 'Drive',
+  direct: 'Direct',
+  test: 'Test'
+};
+
 export const StatusBar = ({
   mode,
   command,
@@ -35,7 +41,7 @@ export const StatusBar = ({
       <div className={styles.grid}>
         <div className={styles.tile}>
           <p className={styles.label}>Mode</p>
-          <p className={styles.value}>{mode === 'drive' ? 'Drive' : 'Direct'}</p>
+          <p className={styles.value}>{modeLabels[mode]}</p>
         </div>
         <div className={styles.tile}>
           <p className={styles.label}>Left / Right</p>
