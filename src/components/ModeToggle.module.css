@@ -1,16 +1,16 @@
 .toggle {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
   padding: 0.5rem;
-  border-radius: 999px;
+  border-radius: 1rem;
   background: rgba(23, 34, 43, 0.08);
 }
 
 .button {
   min-height: 3rem;
   border: 0;
-  border-radius: 999px;
+  border-radius: 0.75rem;
   background: transparent;
   color: var(--text-muted);
   font: inherit;
@@ -25,4 +25,15 @@
 
 .button:disabled {
   opacity: 0.6;
+}
+
+@media (min-width: 32rem) {
+  .toggle {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-radius: 999px;
+  }
+
+  .button {
+    border-radius: 999px;
+  }
 }

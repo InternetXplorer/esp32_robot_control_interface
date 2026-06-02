@@ -5,7 +5,11 @@ import {
   REQUEST_DEVICE_OPTIONS
 } from './constants';
 import { BleClientError, normalizeBleError } from './errors';
-import { encodeDriveCommand } from '../domain/encode';
+import {
+  encodeDriveCommand,
+  encodeReturnToOriginCommand,
+  encodeStopCommand
+} from '../domain/encode';
 import { DriveCommand } from '../domain/motor';
 
 export interface BleMotorClient {
@@ -15,6 +19,7 @@ export interface BleMotorClient {
   reconnectKnownDevice(): Promise<boolean>;
   disconnect(): Promise<void>;
   writeCommand(command: DriveCommand): Promise<void>;
+  returnToOrigin(): Promise<void>;
   emergencyStop(): Promise<void>;
   onDisconnected(listener: () => void): () => void;
 }
@@ -125,13 +130,35 @@ export class WebBleMotorClient implements BleMotorClient {
   }
 
   async writeCommand(command: DriveCommand): Promise<void> {
+    await this.writePacket(encodeDriveCommand(command), 'drive', command);
+  }
+
+  async returnToOrigin(): Promise<void> {
+    await this.writePacket(encodeReturnToOriginCommand(), 'return-to-origin');
+  }
+
+  async emergencyStop(): Promise<void> {
+    if (!this.server?.connected) {
+      return;
+    }
+
+    await this.writePacket(encodeStopCommand(), 'stop');
+  }
+
+  onDisconnected(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  private async writePacket(packet: ArrayBuffer, label: string, command?: DriveCommand): Promise<void> {
     if (!this.server?.connected || !this.commandCharacteristic) {
       throw new BleClientError('gatt-disconnected', 'Device is not connected.');
     }
 
     try {
-      const packet = encodeDriveCommand(command);
-      debug('write', { command, packet: Array.from(new Uint8Array(packet)) });
+      debug('write', { label, command, packet: Array.from(new Uint8Array(packet)) });
       await this.commandCharacteristic.writeValue(packet);
     } catch (error) {
       debug('write failure', error);
@@ -140,21 +167,6 @@ export class WebBleMotorClient implements BleMotorClient {
         cause: error instanceof Error ? error : undefined
       });
     }
-  }
-
-  async emergencyStop(): Promise<void> {
-    if (!this.server?.connected) {
-      return;
-    }
-
-    await this.writeCommand({ left: 0, right: 0 });
-  }
-
-  onDisconnected(listener: () => void): () => void {
-    this.listeners.add(listener);
-    return () => {
-      this.listeners.delete(listener);
-    };
   }
 
   private ensureSupport(): void {

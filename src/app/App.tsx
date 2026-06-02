@@ -4,6 +4,7 @@ import { BleClientError } from '../ble/errors';
 import { CommandRateLimiter } from '../domain/rateLimiter';
 import { zeroCommand } from '../domain/motor';
 import { useControllerStore } from '../state/controllerStore';
+import { AutonomyPanel } from '../components/AutonomyPanel';
 import { ConnectionPanel } from '../components/ConnectionPanel';
 import { JoystickPad } from '../components/JoystickPad';
 import { ModeToggle } from '../components/ModeToggle';
@@ -177,7 +178,31 @@ export const App = () => {
   };
 
   const stop = async () => {
+    rateLimiter.stop();
     emergencyResetUi();
+
+    if (!isConnected) {
+      return;
+    }
+
+    try {
+      await bleClient.emergencyStop();
+    } catch (error) {
+      setDisconnected(error instanceof BleClientError ? error.category : 'write-failed');
+    }
+  };
+
+  const returnToOrigin = async () => {
+    if (!isConnected) {
+      return;
+    }
+
+    rateLimiter.stop();
+    try {
+      await bleClient.returnToOrigin();
+    } catch (error) {
+      setDisconnected(error instanceof BleClientError ? error.category : 'write-failed');
+    }
   };
 
   const switchMode = (nextMode: typeof mode) => {
@@ -225,12 +250,14 @@ export const App = () => {
             resetToken={resetToken}
             onCommandChange={setDesiredCommand}
           />
-        ) : (
+        ) : mode === 'test' ? (
           <MotionTestButtons
             disabled={!isConnected}
             resetToken={resetToken}
             onCommandChange={setDesiredCommand}
           />
+        ) : (
+          <AutonomyPanel disabled={!isConnected} onReturnToOrigin={returnToOrigin} />
         )}
       </section>
       <StopButton onPress={() => void stop()} />
