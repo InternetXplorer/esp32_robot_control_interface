@@ -1,6 +1,7 @@
 import {
   COMMAND_CHARACTERISTIC_UUID,
   DEVICE_NAME_HINT,
+  DIAGNOSTICS_CHARACTERISTIC_UUID,
   MOTOR_SERVICE_UUID,
   REQUEST_DEVICE_OPTIONS
 } from './constants';
@@ -22,7 +23,17 @@ export interface BleMotorClient {
   returnToOrigin(): Promise<void>;
   emergencyStop(): Promise<void>;
   onDisconnected(listener: () => void): () => void;
+  onDiagnostics(listener: (diagnostics: RobotDiagnostics) => void): () => void;
 }
+
+export type RobotDiagnostics = {
+  mode: 'manual' | 'returning';
+  lastRequest: 'stop' | 'drive' | 'home' | 'unknown';
+  odometryStale: boolean;
+  xMm: number;
+  yMm: number;
+  headingMdeg: number;
+};
 
 const DEV = import.meta.env.DEV;
 
@@ -36,7 +47,9 @@ export class WebBleMotorClient implements BleMotorClient {
   private device: BluetoothDevice | null = null;
   private server: BluetoothRemoteGATTServer | null = null;
   private commandCharacteristic: BluetoothRemoteGATTCharacteristic | null = null;
+  private diagnosticsCharacteristic: BluetoothRemoteGATTCharacteristic | null = null;
   private listeners = new Set<() => void>();
+  private diagnosticsListeners = new Set<(diagnostics: RobotDiagnostics) => void>();
   private suppressDisconnectEvent = false;
 
   isSupported(): boolean {
@@ -152,6 +165,11 @@ export class WebBleMotorClient implements BleMotorClient {
     };
   }
 
+  onDiagnostics(listener: (diagnostics: RobotDiagnostics) => void): () => void {
+    this.diagnosticsListeners.add(listener);
+    return () => this.diagnosticsListeners.delete(listener);
+  }
+
   private async writePacket(packet: ArrayBuffer, label: string, command?: DriveCommand): Promise<void> {
     if (!this.server?.connected || !this.commandCharacteristic) {
       throw new BleClientError('gatt-disconnected', 'Device is not connected.');
@@ -194,8 +212,37 @@ export class WebBleMotorClient implements BleMotorClient {
 
     this.server = server;
     this.commandCharacteristic = commandCharacteristic;
+    try {
+      const diagnosticsCharacteristic = await service.getCharacteristic(DIAGNOSTICS_CHARACTERISTIC_UUID);
+      await diagnosticsCharacteristic.startNotifications();
+      diagnosticsCharacteristic.addEventListener('characteristicvaluechanged', this.handleDiagnostics);
+      this.diagnosticsCharacteristic = diagnosticsCharacteristic;
+      debug('diagnostics enabled');
+    } catch (error) {
+      // Diagnostics are intentionally optional so this UI remains compatible
+      // with an already-flashed firmware image during the upgrade.
+      debug('diagnostics unavailable', error);
+    }
     debug('connected');
   }
+
+  private readonly handleDiagnostics = (event: Event): void => {
+    const value = (event.target as BluetoothRemoteGATTCharacteristic).value;
+    if (!value || value.byteLength !== 16 || value.getUint8(0) !== 1) {
+      return;
+    }
+
+    const lastRequest = (['stop', 'drive', 'home'] as const)[value.getUint8(2)] ?? 'unknown';
+    const diagnostics: RobotDiagnostics = {
+      mode: value.getUint8(1) === 1 ? 'returning' : 'manual',
+      lastRequest,
+      odometryStale: value.getUint8(3) !== 0,
+      xMm: value.getInt32(4, true),
+      yMm: value.getInt32(8, true),
+      headingMdeg: value.getInt32(12, true)
+    };
+    this.diagnosticsListeners.forEach((listener) => listener(diagnostics));
+  };
 
   private readonly handleDisconnected = (): void => {
     debug('gatt disconnected');
@@ -212,8 +259,15 @@ export class WebBleMotorClient implements BleMotorClient {
     if (this.device) {
       this.device.removeEventListener('gattserverdisconnected', this.handleDisconnected);
     }
+    if (this.diagnosticsCharacteristic) {
+      this.diagnosticsCharacteristic.removeEventListener(
+        'characteristicvaluechanged',
+        this.handleDiagnostics
+      );
+    }
     this.server = null;
     this.commandCharacteristic = null;
+    this.diagnosticsCharacteristic = null;
     this.device = null;
     this.suppressDisconnectEvent = false;
   }

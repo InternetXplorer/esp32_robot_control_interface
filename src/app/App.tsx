@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { WebBleMotorClient } from '../ble/client';
+import { useEffect, useState } from 'react';
+import { RobotDiagnostics, WebBleMotorClient } from '../ble/client';
 import { BleClientError } from '../ble/errors';
 import { CommandRateLimiter } from '../domain/rateLimiter';
 import { zeroCommand } from '../domain/motor';
@@ -25,6 +25,7 @@ const rateLimiter = new CommandRateLimiter({
 });
 
 export const App = () => {
+  const [diagnostics, setDiagnostics] = useState<RobotDiagnostics | null>(null);
   const support = useControllerStore((state) => state.support);
   const mode = useControllerStore((state) => state.mode);
   const desiredCommand = useControllerStore((state) => state.desiredCommand);
@@ -99,6 +100,8 @@ export const App = () => {
       unsubscribe();
     };
   }, [setDisconnected]);
+
+  useEffect(() => bleClient.onDiagnostics(setDiagnostics), []);
 
   useEffect(() => {
     if (!isConnected) {
@@ -223,6 +226,16 @@ export const App = () => {
         isSupported={support.isSecureContext && support.webBluetoothSupported}
       />
       {bannerMessage && <div className={styles.banner}>{bannerMessage}</div>}
+      {diagnostics && (
+        <section className={styles.diagnostics} aria-label="Robot diagnostics">
+          <p className={styles.sectionLabel}>Firmware diagnostics</p>
+          <textarea
+            aria-label="Copyable firmware diagnostics"
+            readOnly
+            value={`mode=${diagnostics.mode}\nlast_request=${diagnostics.lastRequest}\nodometry_stale=${diagnostics.odometryStale}\nx_mm=${diagnostics.xMm}\ny_mm=${diagnostics.yMm}\nheading_mdeg=${diagnostics.headingMdeg}`}
+          />
+        </section>
+      )}
       <ConnectionPanel
         isSupported={support.isSecureContext && support.webBluetoothSupported}
         isSecureContext={support.isSecureContext}
