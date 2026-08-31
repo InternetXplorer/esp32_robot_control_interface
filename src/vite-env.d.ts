@@ -23,8 +23,10 @@ declare global {
   type BluetoothServiceUUID = string | number;
   type BufferSource = ArrayBuffer | ArrayBufferView;
 
-  interface BluetoothRemoteGATTCharacteristic {
+  interface BluetoothRemoteGATTCharacteristic extends EventTarget {
+    value?: DataView;
     writeValue(value: BufferSource): Promise<void>;
+    startNotifications(): Promise<BluetoothRemoteGATTCharacteristic>;
   }
 
   interface BluetoothRemoteGATTService {

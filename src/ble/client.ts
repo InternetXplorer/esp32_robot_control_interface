@@ -227,7 +227,7 @@ export class WebBleMotorClient implements BleMotorClient {
   }
 
   private readonly handleDiagnostics = (event: Event): void => {
-    const value = (event.target as BluetoothRemoteGATTCharacteristic).value;
+    const value = (event.target as unknown as BluetoothRemoteGATTCharacteristic).value;
     if (!value || value.byteLength !== 16 || value.getUint8(0) !== 1) {
       return;
     }
