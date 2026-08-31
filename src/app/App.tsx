@@ -10,6 +10,7 @@ import { JoystickPad } from '../components/JoystickPad';
 import { ModeToggle } from '../components/ModeToggle';
 import { MotionTestButtons } from '../components/MotionTestButtons';
 import { MotorSliders } from '../components/MotorSliders';
+import { RobotPose } from '../components/RobotPose';
 import { StatusBar } from '../components/StatusBar';
 import { StopButton } from '../components/StopButton';
 import styles from './App.module.css';
@@ -233,6 +234,7 @@ export const App = () => {
         isSupported={support.isSecureContext && support.webBluetoothSupported}
       />
       {bannerMessage && <div className={styles.banner}>{bannerMessage}</div>}
+      {diagnostics && <RobotPose diagnostics={diagnostics} />}
       {diagnostics && (
         <section className={styles.diagnostics} aria-label="Robot diagnostics">
           <p className={styles.sectionLabel}>Firmware diagnostics</p>
