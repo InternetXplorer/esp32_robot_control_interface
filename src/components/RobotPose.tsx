@@ -19,8 +19,10 @@ export const RobotPose = ({ diagnostics, disabled, onResetOrigin }: Props) => {
   const [isResetting, setIsResetting] = useState(false);
   // Keep the accumulated value for the transform: CSS can then animate past
   // full turns (for example 359° → 360° → 361°) without reversing at 0°.
-  const unwrappedHeadingDegrees = diagnostics.headingMdeg / 1000;
-  const headingDegrees = normalizeHeading(diagnostics.headingMdeg);
+  // Odometry uses counterclockwise-positive angles, whereas CSS rotation is
+  // clockwise-positive on screen, so negate it for this compass display.
+  const unwrappedHeadingDegrees = -diagnostics.headingMdeg / 1000;
+  const headingDegrees = normalizeHeading(-diagnostics.headingMdeg);
   const headingLabel = formatHeading(headingDegrees);
 
   const resetOrigin = async () => {
