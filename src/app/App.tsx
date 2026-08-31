@@ -216,6 +216,23 @@ export const App = () => {
     }
   };
 
+  const resetOrigin = async () => {
+    if (!isConnected) {
+      return;
+    }
+
+    // Origin must be captured while stopped. Queue the stop before the reset
+    // on the same BLE write stream so it cannot race an in-flight drive write.
+    rateLimiter.stop();
+    emergencyResetUi();
+    try {
+      await bleClient.emergencyStop();
+      await bleClient.resetOrigin();
+    } catch (error) {
+      setDisconnected(error instanceof BleClientError ? error.category : 'write-failed');
+    }
+  };
+
   const switchMode = (nextMode: typeof mode) => {
     if (nextMode === mode) {
       return;
@@ -234,7 +251,13 @@ export const App = () => {
         isSupported={support.isSecureContext && support.webBluetoothSupported}
       />
       {bannerMessage && <div className={styles.banner}>{bannerMessage}</div>}
-      {diagnostics && <RobotPose diagnostics={diagnostics} />}
+      {diagnostics && (
+        <RobotPose
+          diagnostics={diagnostics}
+          disabled={!isConnected}
+          onResetOrigin={resetOrigin}
+        />
+      )}
       {diagnostics && (
         <section className={styles.diagnostics} aria-label="Robot diagnostics">
           <p className={styles.sectionLabel}>Firmware diagnostics</p>

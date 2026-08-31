@@ -138,6 +138,26 @@
   gap: 0.75rem;
 }
 
+.resetButton {
+  min-height: 2.75rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid rgba(31, 111, 95, 0.32);
+  border-radius: 0.8rem;
+  background: var(--surface-strong);
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+}
+
+.resetButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.resetButton:not(:disabled):active {
+  background: rgba(31, 111, 95, 0.12);
+}
+
 @media (max-width: 360px) {
   .content { grid-template-columns: 1fr; }
   .compass { width: 8.5rem; }

@@ -1,5 +1,6 @@
 import {
   encodeDriveCommand,
+  encodeResetOriginCommand,
   encodeReturnToOriginCommand,
   encodeStopCommand
 } from './encode';
@@ -26,5 +27,11 @@ describe('encodeDriveCommand', () => {
 describe('encodeReturnToOriginCommand', () => {
   it('encodes return to origin as a single-byte packet', () => {
     expect(toBytes(encodeReturnToOriginCommand())).toEqual([0x02]);
+  });
+});
+
+describe('encodeResetOriginCommand', () => {
+  it('encodes reset origin as a single-byte packet', () => {
+    expect(toBytes(encodeResetOriginCommand())).toEqual([0x03]);
   });
 });

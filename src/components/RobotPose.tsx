@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { RobotDiagnostics } from '../ble/client';
 import styles from './RobotPose.module.css';
 
 type Props = {
   diagnostics: RobotDiagnostics;
+  disabled: boolean;
+  onResetOrigin: () => Promise<void>;
 };
 
 const normalizeHeading = (headingMdeg: number): number => {
@@ -12,9 +15,23 @@ const normalizeHeading = (headingMdeg: number): number => {
 
 const formatHeading = (headingDegrees: number): string => `${headingDegrees.toFixed(1)}°`;
 
-export const RobotPose = ({ diagnostics }: Props) => {
+export const RobotPose = ({ diagnostics, disabled, onResetOrigin }: Props) => {
+  const [isResetting, setIsResetting] = useState(false);
   const headingDegrees = normalizeHeading(diagnostics.headingMdeg);
   const headingLabel = formatHeading(headingDegrees);
+
+  const resetOrigin = async () => {
+    if (disabled || isResetting) {
+      return;
+    }
+
+    setIsResetting(true);
+    try {
+      await onResetOrigin();
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   return (
     <section className={styles.card} aria-label="Robot position and heading">
@@ -52,6 +69,14 @@ export const RobotPose = ({ diagnostics }: Props) => {
               <p className={styles.value}>{diagnostics.yMm} mm</p>
             </div>
           </div>
+          <button
+            className={styles.resetButton}
+            disabled={disabled || isResetting}
+            onClick={() => void resetOrigin()}
+            type="button"
+          >
+            {isResetting ? 'Resetting origin…' : 'Reset origin'}
+          </button>
         </div>
       </div>
     </section>

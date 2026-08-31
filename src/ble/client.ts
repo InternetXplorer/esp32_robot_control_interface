@@ -8,6 +8,7 @@ import {
 import { BleClientError, normalizeBleError } from './errors';
 import {
   encodeDriveCommand,
+  encodeResetOriginCommand,
   encodeReturnToOriginCommand,
   encodeStopCommand
 } from '../domain/encode';
@@ -21,6 +22,7 @@ export interface BleMotorClient {
   disconnect(): Promise<void>;
   writeCommand(command: DriveCommand): Promise<void>;
   returnToOrigin(): Promise<void>;
+  resetOrigin(): Promise<void>;
   emergencyStop(): Promise<void>;
   onDisconnected(listener: () => void): () => void;
   onDiagnostics(listener: (diagnostics: RobotDiagnostics) => void): () => void;
@@ -28,7 +30,7 @@ export interface BleMotorClient {
 
 export type RobotDiagnostics = {
   mode: 'manual' | 'returning';
-  lastRequest: 'stop' | 'drive' | 'home' | 'unknown';
+  lastRequest: 'stop' | 'drive' | 'home' | 'reset-origin' | 'unknown';
   odometryStale: boolean;
   xMm: number;
   yMm: number;
@@ -154,6 +156,10 @@ export class WebBleMotorClient implements BleMotorClient {
     await this.writePacket(encodeReturnToOriginCommand(), 'return-to-origin');
   }
 
+  async resetOrigin(): Promise<void> {
+    await this.writePacket(encodeResetOriginCommand(), 'reset-origin');
+  }
+
   async emergencyStop(): Promise<void> {
     if (!this.server?.connected) {
       return;
@@ -243,7 +249,8 @@ export class WebBleMotorClient implements BleMotorClient {
       return;
     }
 
-    const lastRequest = (['stop', 'drive', 'home'] as const)[value.getUint8(2)] ?? 'unknown';
+    const lastRequest =
+      (['stop', 'drive', 'home', 'reset-origin'] as const)[value.getUint8(2)] ?? 'unknown';
     const diagnostics: RobotDiagnostics = {
       mode: value.getUint8(1) === 1 ? 'returning' : 'manual',
       lastRequest,
