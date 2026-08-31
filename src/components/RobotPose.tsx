@@ -17,6 +17,9 @@ const formatHeading = (headingDegrees: number): string => `${headingDegrees.toFi
 
 export const RobotPose = ({ diagnostics, disabled, onResetOrigin }: Props) => {
   const [isResetting, setIsResetting] = useState(false);
+  // Keep the accumulated value for the transform: CSS can then animate past
+  // full turns (for example 359° → 360° → 361°) without reversing at 0°.
+  const unwrappedHeadingDegrees = diagnostics.headingMdeg / 1000;
   const headingDegrees = normalizeHeading(diagnostics.headingMdeg);
   const headingLabel = formatHeading(headingDegrees);
 
@@ -48,7 +51,10 @@ export const RobotPose = ({ diagnostics, disabled, onResetOrigin }: Props) => {
           <span className={styles.east}>E</span>
           <span className={styles.south}>S</span>
           <span className={styles.west}>W</span>
-          <div className={styles.needle} style={{ transform: `rotate(${headingDegrees}deg)` }}>
+          <div
+            className={styles.needle}
+            style={{ transform: `rotate(${unwrappedHeadingDegrees}deg)` }}
+          >
             <span className={styles.arrow}>▲</span>
           </div>
           <span className={styles.robot}>Robot</span>
