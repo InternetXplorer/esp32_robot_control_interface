@@ -172,6 +172,7 @@ export const App = () => {
 
   const disconnect = async () => {
     beginDisconnect();
+    rateLimiter.stop();
     emergencyResetUi();
     try {
       await bleClient.disconnect();
@@ -189,7 +190,13 @@ export const App = () => {
     }
 
     try {
-      await bleClient.emergencyStop();
+      // Do not bypass the limiter here. A slider write can still be awaiting
+      // its GATT response; the limiter coalesces the requested zero and sends
+      // it immediately after that write instead of issuing concurrent ATT
+      // operations. The UI reset above also triggers the normal desired-
+      // command effect, which deduplicates this same zero command.
+      rateLimiter.setDesired(zeroCommand());
+      await rateLimiter.flushNow();
     } catch (error) {
       setDisconnected(error instanceof BleClientError ? error.category : 'write-failed');
     }

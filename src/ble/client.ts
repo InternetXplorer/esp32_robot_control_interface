@@ -51,6 +51,10 @@ export class WebBleMotorClient implements BleMotorClient {
   private listeners = new Set<() => void>();
   private diagnosticsListeners = new Set<(diagnostics: RobotDiagnostics) => void>();
   private suppressDisconnectEvent = false;
+  // Web Bluetooth/GATT does not give this client a safe way to cancel an ATT
+  // write already under way. Keep every command on one stream instead: a stop
+  // then follows the current drive write, rather than racing it.
+  private writeQueue: Promise<void> = Promise.resolve();
 
   isSupported(): boolean {
     return typeof navigator !== 'undefined' && 'bluetooth' in navigator && window.isSecureContext;
@@ -171,20 +175,27 @@ export class WebBleMotorClient implements BleMotorClient {
   }
 
   private async writePacket(packet: ArrayBuffer, label: string, command?: DriveCommand): Promise<void> {
-    if (!this.server?.connected || !this.commandCharacteristic) {
-      throw new BleClientError('gatt-disconnected', 'Device is not connected.');
-    }
+    const write = this.writeQueue.then(async () => {
+      if (!this.server?.connected || !this.commandCharacteristic) {
+        throw new BleClientError('gatt-disconnected', 'Device is not connected.');
+      }
 
-    try {
-      debug('write', { label, command, packet: Array.from(new Uint8Array(packet)) });
-      await this.commandCharacteristic.writeValue(packet);
-    } catch (error) {
-      debug('write failure', error);
-      this.clearSession();
-      throw new BleClientError('write-failed', 'Failed to write motor command.', {
-        cause: error instanceof Error ? error : undefined
-      });
-    }
+      try {
+        debug('write', { label, command, packet: Array.from(new Uint8Array(packet)) });
+        await this.commandCharacteristic.writeValue(packet);
+      } catch (error) {
+        debug('write failure', error);
+        this.clearSession();
+        throw new BleClientError('write-failed', 'Failed to write motor command.', {
+          cause: error instanceof Error ? error : undefined
+        });
+      }
+    });
+
+    // Keep the queue usable after a failed write while returning the original
+    // result to its caller.
+    this.writeQueue = write.catch(() => undefined);
+    return write;
   }
 
   private ensureSupport(): void {
