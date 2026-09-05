@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { RobotDiagnostics } from '../ble/client';
 import styles from './RobotPose.module.css';
 
@@ -17,6 +17,7 @@ const formatHeading = (headingDegrees: number): string => `${headingDegrees.toFi
 
 export const RobotPose = ({ diagnostics, disabled, onResetOrigin }: Props) => {
   const [isResetting, setIsResetting] = useState(false);
+  const originAngle = useRef<{ wrapped: number; unwrapped: number } | null>(null);
   // Keep the accumulated value for the transform: CSS can then animate past
   // full turns (for example 359° → 360° → 361°) without reversing at 0°.
   // Odometry uses counterclockwise-positive angles, whereas CSS rotation is
@@ -30,6 +31,26 @@ export const RobotPose = ({ diagnostics, disabled, onResetOrigin }: Props) => {
   const originDirectionDegrees = isAtOrigin
     ? null
     : -Math.atan2(-diagnostics.yMm, -diagnostics.xMm) * (180 / Math.PI);
+  let unwrappedOriginDirectionDegrees: number | null = null;
+
+  if (originDirectionDegrees === null) {
+    originAngle.current = null;
+  } else if (originAngle.current === null) {
+    originAngle.current = {
+      wrapped: originDirectionDegrees,
+      unwrapped: originDirectionDegrees
+    };
+    unwrappedOriginDirectionDegrees = originDirectionDegrees;
+  } else {
+    // atan2 wraps at ±180°. Apply only the shortest angular difference so
+    // the marker remains continuous when the origin crosses the bottom edge.
+    const delta = ((originDirectionDegrees - originAngle.current.wrapped + 540) % 360) - 180;
+    originAngle.current = {
+      wrapped: originDirectionDegrees,
+      unwrapped: originAngle.current.unwrapped + delta
+    };
+    unwrappedOriginDirectionDegrees = originAngle.current.unwrapped;
+  }
 
   const resetOrigin = async () => {
     if (disabled || isResetting) {
@@ -65,11 +86,11 @@ export const RobotPose = ({ diagnostics, disabled, onResetOrigin }: Props) => {
           >
             <span className={styles.arrow}>▲</span>
           </div>
-          {originDirectionDegrees !== null && (
+          {unwrappedOriginDirectionDegrees !== null && (
             <div
               aria-label="Direction to origin"
               className={styles.homeNeedle}
-              style={{ transform: `rotate(${originDirectionDegrees}deg)` }}
+              style={{ transform: `rotate(${unwrappedOriginDirectionDegrees}deg)` }}
             >
               <span className={styles.homeArrow} />
             </div>
