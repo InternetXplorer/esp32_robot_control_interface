@@ -35,6 +35,63 @@ export type RobotDiagnostics = {
   xMm: number;
   yMm: number;
   headingMdeg: number;
+  obstacleSafetyEnabled: boolean;
+  obstacleSafetyIntervention:
+    | 'disabled'
+    | 'clear'
+    | 'slowing'
+    | 'stopped'
+    | 'sensor-fault'
+    | 'unknown';
+  frontDistanceMm: number | null;
+};
+
+const diagnosticLastRequests = ['stop', 'drive', 'home', 'reset-origin'] as const;
+const diagnosticSafetyInterventions = [
+  'disabled',
+  'clear',
+  'slowing',
+  'stopped',
+  'sensor-fault'
+] as const;
+
+/** Decode the versioned fixed-size diagnostic payload sent by the firmware. */
+export const decodeDiagnostics = (value: DataView): RobotDiagnostics | null => {
+  if (value.byteLength === 0) {
+    return null;
+  }
+
+  const version = value.getUint8(0);
+
+  if (version === 1 && value.byteLength === 16) {
+    return {
+      mode: value.getUint8(1) === 1 ? 'returning' : 'manual',
+      lastRequest: diagnosticLastRequests[value.getUint8(2)] ?? 'unknown',
+      odometryStale: value.getUint8(3) !== 0,
+      xMm: value.getInt32(4, true),
+      yMm: value.getInt32(8, true),
+      headingMdeg: value.getInt32(12, true),
+      obstacleSafetyEnabled: false,
+      obstacleSafetyIntervention: 'unknown',
+      frontDistanceMm: null
+    };
+  }
+
+  if (version === 2 && value.byteLength === 24) {
+    return {
+      mode: value.getUint8(1) === 1 ? 'returning' : 'manual',
+      lastRequest: diagnosticLastRequests[value.getUint8(2)] ?? 'unknown',
+      odometryStale: value.getUint8(3) !== 0,
+      obstacleSafetyEnabled: value.getUint8(4) !== 0,
+      obstacleSafetyIntervention: diagnosticSafetyInterventions[value.getUint8(5)] ?? 'unknown',
+      xMm: value.getInt32(8, true),
+      yMm: value.getInt32(12, true),
+      headingMdeg: value.getInt32(16, true),
+      frontDistanceMm: value.getUint8(6) !== 0 ? value.getUint16(20, true) : null
+    };
+  }
+
+  return null;
 };
 
 const DEV = import.meta.env.DEV;
@@ -245,20 +302,15 @@ export class WebBleMotorClient implements BleMotorClient {
 
   private readonly handleDiagnostics = (event: Event): void => {
     const value = (event.target as unknown as BluetoothRemoteGATTCharacteristic).value;
-    if (!value || value.byteLength !== 16 || value.getUint8(0) !== 1) {
+    if (!value) {
       return;
     }
 
-    const lastRequest =
-      (['stop', 'drive', 'home', 'reset-origin'] as const)[value.getUint8(2)] ?? 'unknown';
-    const diagnostics: RobotDiagnostics = {
-      mode: value.getUint8(1) === 1 ? 'returning' : 'manual',
-      lastRequest,
-      odometryStale: value.getUint8(3) !== 0,
-      xMm: value.getInt32(4, true),
-      yMm: value.getInt32(8, true),
-      headingMdeg: value.getInt32(12, true)
-    };
+    const diagnostics = decodeDiagnostics(value);
+    if (!diagnostics) {
+      return;
+    }
+
     this.diagnosticsListeners.forEach((listener) => listener(diagnostics));
   };
 

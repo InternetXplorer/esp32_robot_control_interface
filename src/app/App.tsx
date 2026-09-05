@@ -264,7 +264,7 @@ export const App = () => {
           <textarea
             aria-label="Copyable firmware diagnostics"
             readOnly
-            value={`mode=${diagnostics.mode}\nlast_request=${diagnostics.lastRequest}\nodometry_stale=${diagnostics.odometryStale}\nx_mm=${diagnostics.xMm}\ny_mm=${diagnostics.yMm}\nheading_mdeg=${diagnostics.headingMdeg}`}
+            value={`mode=${diagnostics.mode}\nlast_request=${diagnostics.lastRequest}\nodometry_stale=${diagnostics.odometryStale}\nobstacle_safety_enabled=${diagnostics.obstacleSafetyEnabled}\nobstacle_safety_intervention=${diagnostics.obstacleSafetyIntervention}\nfront_distance_mm=${diagnostics.frontDistanceMm ?? 'unavailable'}\nx_mm=${diagnostics.xMm}\ny_mm=${diagnostics.yMm}\nheading_mdeg=${diagnostics.headingMdeg}`}
           />
         </section>
       )}
