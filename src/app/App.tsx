@@ -1,14 +1,16 @@
-import { useEffect } from 'react';
-import { WebBleMotorClient } from '../ble/client';
+import { useEffect, useState } from 'react';
+import { RobotDiagnostics, WebBleMotorClient } from '../ble/client';
 import { BleClientError } from '../ble/errors';
 import { CommandRateLimiter } from '../domain/rateLimiter';
 import { zeroCommand } from '../domain/motor';
 import { useControllerStore } from '../state/controllerStore';
+import { AutonomyPanel } from '../components/AutonomyPanel';
 import { ConnectionPanel } from '../components/ConnectionPanel';
 import { JoystickPad } from '../components/JoystickPad';
 import { ModeToggle } from '../components/ModeToggle';
 import { MotionTestButtons } from '../components/MotionTestButtons';
 import { MotorSliders } from '../components/MotorSliders';
+import { RobotPose } from '../components/RobotPose';
 import { StatusBar } from '../components/StatusBar';
 import { StopButton } from '../components/StopButton';
 import styles from './App.module.css';
@@ -24,6 +26,7 @@ const rateLimiter = new CommandRateLimiter({
 });
 
 export const App = () => {
+  const [diagnostics, setDiagnostics] = useState<RobotDiagnostics | null>(null);
   const support = useControllerStore((state) => state.support);
   const mode = useControllerStore((state) => state.mode);
   const desiredCommand = useControllerStore((state) => state.desiredCommand);
@@ -99,6 +102,8 @@ export const App = () => {
     };
   }, [setDisconnected]);
 
+  useEffect(() => bleClient.onDiagnostics(setDiagnostics), []);
+
   useEffect(() => {
     if (!isConnected) {
       rateLimiter.stop();
@@ -168,6 +173,7 @@ export const App = () => {
 
   const disconnect = async () => {
     beginDisconnect();
+    rateLimiter.stop();
     emergencyResetUi();
     try {
       await bleClient.disconnect();
@@ -177,7 +183,54 @@ export const App = () => {
   };
 
   const stop = async () => {
+    rateLimiter.stop();
     emergencyResetUi();
+
+    if (!isConnected) {
+      return;
+    }
+
+    try {
+      // Do not bypass the limiter here. A slider write can still be awaiting
+      // its GATT response; the limiter coalesces the requested zero and sends
+      // it immediately after that write instead of issuing concurrent ATT
+      // operations. The UI reset above also triggers the normal desired-
+      // command effect, which deduplicates this same zero command.
+      rateLimiter.setDesired(zeroCommand());
+      await rateLimiter.flushNow();
+    } catch (error) {
+      setDisconnected(error instanceof BleClientError ? error.category : 'write-failed');
+    }
+  };
+
+  const returnToOrigin = async () => {
+    if (!isConnected) {
+      return;
+    }
+
+    rateLimiter.stop();
+    try {
+      await bleClient.returnToOrigin();
+    } catch (error) {
+      setDisconnected(error instanceof BleClientError ? error.category : 'write-failed');
+    }
+  };
+
+  const resetOrigin = async () => {
+    if (!isConnected) {
+      return;
+    }
+
+    // Origin must be captured while stopped. Queue the stop before the reset
+    // on the same BLE write stream so it cannot race an in-flight drive write.
+    rateLimiter.stop();
+    emergencyResetUi();
+    try {
+      await bleClient.emergencyStop();
+      await bleClient.resetOrigin();
+    } catch (error) {
+      setDisconnected(error instanceof BleClientError ? error.category : 'write-failed');
+    }
   };
 
   const switchMode = (nextMode: typeof mode) => {
@@ -198,6 +251,23 @@ export const App = () => {
         isSupported={support.isSecureContext && support.webBluetoothSupported}
       />
       {bannerMessage && <div className={styles.banner}>{bannerMessage}</div>}
+      {diagnostics && (
+        <RobotPose
+          diagnostics={diagnostics}
+          disabled={!isConnected}
+          onResetOrigin={resetOrigin}
+        />
+      )}
+      {diagnostics && (
+        <section className={styles.diagnostics} aria-label="Robot diagnostics">
+          <p className={styles.sectionLabel}>Firmware diagnostics</p>
+          <textarea
+            aria-label="Copyable firmware diagnostics"
+            readOnly
+            value={`mode=${diagnostics.mode}\nlast_request=${diagnostics.lastRequest}\nodometry_stale=${diagnostics.odometryStale}\nx_mm=${diagnostics.xMm}\ny_mm=${diagnostics.yMm}\nheading_mdeg=${diagnostics.headingMdeg}`}
+          />
+        </section>
+      )}
       <ConnectionPanel
         isSupported={support.isSecureContext && support.webBluetoothSupported}
         isSecureContext={support.isSecureContext}
@@ -225,12 +295,14 @@ export const App = () => {
             resetToken={resetToken}
             onCommandChange={setDesiredCommand}
           />
-        ) : (
+        ) : mode === 'test' ? (
           <MotionTestButtons
             disabled={!isConnected}
             resetToken={resetToken}
             onCommandChange={setDesiredCommand}
           />
+        ) : (
+          <AutonomyPanel disabled={!isConnected} onReturnToOrigin={returnToOrigin} />
         )}
       </section>
       <StopButton onPress={() => void stop()} />

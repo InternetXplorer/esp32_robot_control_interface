@@ -23,7 +23,8 @@ describe('CommandRateLimiter', () => {
     vi.setSystemTime(new Date('2026-05-11T00:00:00.000Z'));
 
     const sentAt: number[] = [];
-    const send = vi.fn(async (_command: DriveCommand) => {
+    const send = vi.fn(async (command: DriveCommand) => {
+      void command;
       sentAt.push(Date.now());
     });
 

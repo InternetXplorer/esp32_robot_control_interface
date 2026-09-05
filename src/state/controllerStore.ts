@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { BleErrorCategory, getErrorMessage } from '../ble/errors';
 import { DriveCommand, zeroCommand } from '../domain/motor';
 
-export type ControlMode = 'drive' | 'direct' | 'test';
+export type ControlMode = 'drive' | 'direct' | 'test' | 'autonomy';
 export type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'disconnecting';
 
 type SupportState = {

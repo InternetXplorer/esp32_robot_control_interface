@@ -17,6 +17,7 @@ Mobile-first React + TypeScript + Vite PWA for controlling the `Wheeled Robot` E
 - Command characteristic UUID: `12345678-1234-5678-9abc-def012345701`
 - Stop packet: `00`
 - Drive packet: `01 + left_i16_le + right_i16_le`, clamped app-side to `-100..100`
+- Return-to-origin packet: `02`
 
 ## Scripts
 
@@ -37,7 +38,8 @@ Mobile-first React + TypeScript + Vite PWA for controlling the `Wheeled Robot` E
 
 - Web Bluetooth requires Android Chrome over HTTPS.
 - Final BLE validation should be done from the hosted HTTPS URL on the phone, not only from desktop localhost.
-- The app sends `0/0` on joystick release, mode switch, disconnect, page hide, and best-effort page exit.
+- The app sends `0/0` on joystick release, mode switch, disconnect, page hide, best-effort page exit, and Stop.
+- Return to origin is a one-shot autonomy command with no frontend-visible completion signal yet.
 
 ## Deployment
 

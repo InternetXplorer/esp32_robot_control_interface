@@ -13,7 +13,8 @@ type Props = {
 const modeLabels: Record<ControlMode, string> = {
   drive: 'Drive',
   direct: 'Direct',
-  test: 'Test'
+  test: 'Test',
+  autonomy: 'Autonomy'
 };
 
 export const StatusBar = ({

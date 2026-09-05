@@ -32,6 +32,27 @@
   color: var(--text-muted);
 }
 
+.diagnostics {
+  display: grid;
+  gap: 0.55rem;
+  padding: 1rem;
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(23, 34, 43, 0.08);
+  box-shadow: var(--shadow-card);
+}
+
+.diagnostics textarea {
+  min-height: 8.5rem;
+  resize: vertical;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  color: var(--text);
+  background: var(--surface-strong);
+  font: 0.8rem/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
 .buildInfo {
   margin: 0;
   padding-bottom: 1rem;

@@ -1,9 +1,15 @@
-import { encodeDriveCommand } from './encode';
+import {
+  encodeDriveCommand,
+  encodeResetOriginCommand,
+  encodeReturnToOriginCommand,
+  encodeStopCommand
+} from './encode';
 
 const toBytes = (buffer: ArrayBuffer) => Array.from(new Uint8Array(buffer));
 
 describe('encodeDriveCommand', () => {
   it('encodes stop as a single-byte packet', () => {
+    expect(toBytes(encodeStopCommand())).toEqual([0x00]);
     expect(toBytes(encodeDriveCommand({ left: 0, right: 0 }))).toEqual([0x00]);
   });
 
@@ -15,5 +21,17 @@ describe('encodeDriveCommand', () => {
 
   it('clamps out-of-range values before encoding', () => {
     expect(toBytes(encodeDriveCommand({ left: -999, right: 999 }))).toEqual([0x01, 0x9c, 0xff, 0x64, 0x00]);
+  });
+});
+
+describe('encodeReturnToOriginCommand', () => {
+  it('encodes return to origin as a single-byte packet', () => {
+    expect(toBytes(encodeReturnToOriginCommand())).toEqual([0x02]);
+  });
+});
+
+describe('encodeResetOriginCommand', () => {
+  it('encodes reset origin as a single-byte packet', () => {
+    expect(toBytes(encodeResetOriginCommand())).toEqual([0x03]);
   });
 });
