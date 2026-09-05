@@ -24,6 +24,12 @@ export const RobotPose = ({ diagnostics, disabled, onResetOrigin }: Props) => {
   const unwrappedHeadingDegrees = -diagnostics.headingMdeg / 1000;
   const headingDegrees = normalizeHeading(-diagnostics.headingMdeg);
   const headingLabel = formatHeading(headingDegrees);
+  const isAtOrigin = diagnostics.xMm === 0 && diagnostics.yMm === 0;
+  // atan2 returns the counterclockwise-positive bearing used by odometry.
+  // Negate it to place the origin marker correctly in CSS screen coordinates.
+  const originDirectionDegrees = isAtOrigin
+    ? null
+    : -Math.atan2(-diagnostics.yMm, -diagnostics.xMm) * (180 / Math.PI);
 
   const resetOrigin = async () => {
     if (disabled || isResetting) {
@@ -59,6 +65,15 @@ export const RobotPose = ({ diagnostics, disabled, onResetOrigin }: Props) => {
           >
             <span className={styles.arrow}>▲</span>
           </div>
+          {originDirectionDegrees !== null && (
+            <div
+              aria-label="Direction to origin"
+              className={styles.homeNeedle}
+              style={{ transform: `rotate(${originDirectionDegrees}deg)` }}
+            >
+              <span className={styles.homeArrow} />
+            </div>
+          )}
           <span className={styles.robot}>Robot</span>
         </div>
         <div className={styles.readings}>
@@ -66,6 +81,10 @@ export const RobotPose = ({ diagnostics, disabled, onResetOrigin }: Props) => {
             <p className={styles.label}>Heading</p>
             <p className={styles.value}>{headingLabel}</p>
             <p className={styles.detail}>Normalized to 0–360°</p>
+            <p className={`${styles.detail} ${styles.homeLegend}`}>
+              <span className={styles.homeKey} />
+              {isAtOrigin ? 'At origin' : 'Marker points to origin'}
+            </p>
           </div>
           <div className={styles.coordinateGrid}>
             <div className={styles.coordinate}>

@@ -83,6 +83,12 @@
   transition: transform 180ms ease-out;
 }
 
+.homeNeedle {
+  position: absolute;
+  inset: 3%;
+  transition: transform 180ms ease-out;
+}
+
 .arrow {
   position: absolute;
   top: 0;
@@ -91,6 +97,24 @@
   font-size: 2.1rem;
   line-height: 1;
   text-shadow: 0 1px 0 rgba(23, 34, 43, 0.2);
+  transform: translateX(-50%);
+}
+
+.homeArrow,
+.homeKey {
+  display: block;
+  width: 0;
+  height: 0;
+  border-right: 0.38rem solid transparent;
+  border-bottom: 0.7rem solid #3979b8;
+  border-left: 0.38rem solid transparent;
+}
+
+.homeArrow {
+  position: absolute;
+  top: 0.3rem;
+  left: 50%;
+  filter: drop-shadow(0 1px 0 rgba(23, 34, 43, 0.2));
   transform: translateX(-50%);
 }
 
@@ -130,6 +154,19 @@
   margin-top: 0.15rem;
   color: var(--text-muted);
   font-size: 0.72rem;
+}
+
+.homeLegend {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.homeKey {
+  flex: 0 0 auto;
+  border-right-width: 0.25rem;
+  border-bottom-width: 0.45rem;
+  border-left-width: 0.25rem;
 }
 
 .coordinateGrid {
