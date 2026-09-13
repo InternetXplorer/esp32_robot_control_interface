@@ -41,3 +41,9 @@
   text-align: center;
   overflow-wrap: anywhere;
 }
+
+.detail {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
