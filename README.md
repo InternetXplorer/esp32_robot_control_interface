@@ -15,9 +15,16 @@ Mobile-first React + TypeScript + Vite PWA for controlling the `Wheeled Robot` E
 - Device hint: `Wheeled Robot`
 - Service UUID: `12345678-1234-5678-9abc-def012345700`
 - Command characteristic UUID: `12345678-1234-5678-9abc-def012345701`
+- Diagnostics characteristic UUID: `12345678-1234-5678-9abc-def012345702`
 - Stop packet: `00`
 - Drive packet: `01 + left_i16_le + right_i16_le`, clamped app-side to `-100..100`
 - Return-to-origin packet: `02`
+
+Diagnostics versions 2 and later share a stable 24-byte prefix. Firmware may
+assign reserved bytes or append fields in a newer version without breaking an
+older app. Existing field offsets and meanings must not change; a breaking
+format should use a new characteristic UUID or explicit framing rather than
+reusing the current version sequence.
 
 ## Scripts
 
