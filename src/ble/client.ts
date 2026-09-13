@@ -30,7 +30,15 @@ export interface BleMotorClient {
 
 export type RobotDiagnostics = {
   mode: 'manual' | 'returning';
-  lastRequest: 'stop' | 'drive' | 'home' | 'reset-origin' | 'unknown';
+  lastRequest:
+    | 'stop'
+    | 'drive'
+    | 'home'
+    | 'reset-origin'
+    | 'safety-off'
+    | 'safety-on'
+    | 'move-until-obstacle'
+    | 'unknown';
   odometryStale: boolean;
   xMm: number;
   yMm: number;
@@ -44,9 +52,18 @@ export type RobotDiagnostics = {
     | 'sensor-fault'
     | 'unknown';
   frontDistanceMm: number | null;
+  frontSensorFault: boolean;
 };
 
-const diagnosticLastRequests = ['stop', 'drive', 'home', 'reset-origin'] as const;
+const diagnosticLastRequests = [
+  'stop',
+  'drive',
+  'home',
+  'reset-origin',
+  'safety-off',
+  'safety-on',
+  'move-until-obstacle'
+] as const;
 const diagnosticSafetyInterventions = [
   'disabled',
   'clear',
@@ -73,11 +90,15 @@ export const decodeDiagnostics = (value: DataView): RobotDiagnostics | null => {
       headingMdeg: value.getInt32(12, true),
       obstacleSafetyEnabled: false,
       obstacleSafetyIntervention: 'unknown',
-      frontDistanceMm: null
+      frontDistanceMm: null,
+      frontSensorFault: false
     };
   }
 
-  if (version === 2 && value.byteLength === 24) {
+  // Version 2 established the stable 24-byte prefix. Later additive protocol
+  // revisions may use reserved bytes or append fields without requiring an app
+  // release; a breaking revision must use a new characteristic or framing.
+  if (version >= 2 && value.byteLength >= 24) {
     return {
       mode: value.getUint8(1) === 1 ? 'returning' : 'manual',
       lastRequest: diagnosticLastRequests[value.getUint8(2)] ?? 'unknown',
@@ -87,7 +108,8 @@ export const decodeDiagnostics = (value: DataView): RobotDiagnostics | null => {
       xMm: value.getInt32(8, true),
       yMm: value.getInt32(12, true),
       headingMdeg: value.getInt32(16, true),
-      frontDistanceMm: value.getUint8(6) !== 0 ? value.getUint16(20, true) : null
+      frontDistanceMm: value.getUint8(6) !== 0 ? value.getUint16(20, true) : null,
+      frontSensorFault: version >= 3 && value.getUint8(7) !== 0
     };
   }
 
