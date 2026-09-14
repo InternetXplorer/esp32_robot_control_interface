@@ -3,20 +3,25 @@ import styles from './AutonomyPanel.module.css';
 
 type Props = {
   disabled: boolean;
+  onDriveUntilObstacle: () => Promise<void>;
   onReturnToOrigin: () => Promise<void>;
 };
 
-export const AutonomyPanel = ({ disabled, onReturnToOrigin }: Props) => {
+export const AutonomyPanel = ({
+  disabled,
+  onDriveUntilObstacle,
+  onReturnToOrigin
+}: Props) => {
   const [isSending, setIsSending] = useState(false);
 
-  const sendReturnToOrigin = async () => {
+  const sendCommand = async (command: () => Promise<void>) => {
     if (disabled || isSending) {
       return;
     }
 
     setIsSending(true);
     try {
-      await onReturnToOrigin();
+      await command();
     } finally {
       setIsSending(false);
     }
@@ -27,7 +32,16 @@ export const AutonomyPanel = ({ disabled, onReturnToOrigin }: Props) => {
       <button
         className={styles.commandButton}
         disabled={disabled || isSending}
-        onClick={() => void sendReturnToOrigin()}
+        onClick={() => void sendCommand(onDriveUntilObstacle)}
+        type="button"
+      >
+        <span className={styles.label}>Drive until obstacle</span>
+        <span className={styles.detail}>Stop 20 cm away</span>
+      </button>
+      <button
+        className={styles.commandButton}
+        disabled={disabled || isSending}
+        onClick={() => void sendCommand(onReturnToOrigin)}
         type="button"
       >
         <span className={styles.label}>Return to origin</span>

@@ -16,6 +16,7 @@ import { StopButton } from '../components/StopButton';
 import styles from './App.module.css';
 
 const buildInfo = __APP_BUILD_INFO__;
+const AUTONOMY_OBSTACLE_STOP_DISTANCE_MM = 200;
 
 const bleClient = new WebBleMotorClient();
 const rateLimiter = new CommandRateLimiter({
@@ -216,6 +217,19 @@ export const App = () => {
     }
   };
 
+  const driveUntilObstacle = async () => {
+    if (!isConnected) {
+      return;
+    }
+
+    rateLimiter.stop();
+    try {
+      await bleClient.driveUntilObstacle(AUTONOMY_OBSTACLE_STOP_DISTANCE_MM);
+    } catch (error) {
+      setDisconnected(error instanceof BleClientError ? error.category : 'write-failed');
+    }
+  };
+
   const resetOrigin = async () => {
     if (!isConnected) {
       return;
@@ -302,7 +316,11 @@ export const App = () => {
             onCommandChange={setDesiredCommand}
           />
         ) : (
-          <AutonomyPanel disabled={!isConnected} onReturnToOrigin={returnToOrigin} />
+          <AutonomyPanel
+            disabled={!isConnected}
+            onDriveUntilObstacle={driveUntilObstacle}
+            onReturnToOrigin={returnToOrigin}
+          />
         )}
       </section>
       <StopButton onPress={() => void stop()} />

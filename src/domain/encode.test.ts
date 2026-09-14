@@ -1,4 +1,5 @@
 import {
+  encodeDriveUntilObstacleCommand,
   encodeDriveCommand,
   encodeResetOriginCommand,
   encodeReturnToOriginCommand,
@@ -33,5 +34,17 @@ describe('encodeReturnToOriginCommand', () => {
 describe('encodeResetOriginCommand', () => {
   it('encodes reset origin as a single-byte packet', () => {
     expect(toBytes(encodeResetOriginCommand())).toEqual([0x03]);
+  });
+});
+
+describe('encodeDriveUntilObstacleCommand', () => {
+  it('encodes the stop distance as an unsigned little-endian value', () => {
+    expect(toBytes(encodeDriveUntilObstacleCommand(200))).toEqual([0x06, 0xc8, 0x00]);
+  });
+
+  it('rejects distances that cannot be represented as a u16', () => {
+    expect(() => encodeDriveUntilObstacleCommand(-1)).toThrow(RangeError);
+    expect(() => encodeDriveUntilObstacleCommand(65_536)).toThrow(RangeError);
+    expect(() => encodeDriveUntilObstacleCommand(12.5)).toThrow(RangeError);
   });
 });

@@ -7,6 +7,7 @@ import {
 } from './constants';
 import { BleClientError, normalizeBleError } from './errors';
 import {
+  encodeDriveUntilObstacleCommand,
   encodeDriveCommand,
   encodeResetOriginCommand,
   encodeReturnToOriginCommand,
@@ -21,6 +22,7 @@ export interface BleMotorClient {
   reconnectKnownDevice(): Promise<boolean>;
   disconnect(): Promise<void>;
   writeCommand(command: DriveCommand): Promise<void>;
+  driveUntilObstacle(stopDistanceMm: number): Promise<void>;
   returnToOrigin(): Promise<void>;
   resetOrigin(): Promise<void>;
   emergencyStop(): Promise<void>;
@@ -233,6 +235,13 @@ export class WebBleMotorClient implements BleMotorClient {
 
   async returnToOrigin(): Promise<void> {
     await this.writePacket(encodeReturnToOriginCommand(), 'return-to-origin');
+  }
+
+  async driveUntilObstacle(stopDistanceMm: number): Promise<void> {
+    await this.writePacket(
+      encodeDriveUntilObstacleCommand(stopDistanceMm),
+      'drive-until-obstacle'
+    );
   }
 
   async resetOrigin(): Promise<void> {

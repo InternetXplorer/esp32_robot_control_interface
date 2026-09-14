@@ -19,6 +19,7 @@ Mobile-first React + TypeScript + Vite PWA for controlling the `Wheeled Robot` E
 - Stop packet: `00`
 - Drive packet: `01 + left_i16_le + right_i16_le`, clamped app-side to `-100..100`
 - Return-to-origin packet: `02`
+- Drive-until-obstacle packet: `06 + stop_distance_mm_u16_le` (the autonomy button uses 200 mm)
 
 Diagnostics versions 2 and later share a stable 24-byte prefix. Firmware may
 assign reserved bytes or append fields in a newer version without breaking an
@@ -46,7 +47,7 @@ reusing the current version sequence.
 - Web Bluetooth requires Android Chrome over HTTPS.
 - Final BLE validation should be done from the hosted HTTPS URL on the phone, not only from desktop localhost.
 - The app sends `0/0` on joystick release, mode switch, disconnect, page hide, best-effort page exit, and Stop.
-- Return to origin is a one-shot autonomy command with no frontend-visible completion signal yet.
+- Return to origin and drive until obstacle are one-shot autonomy commands with no frontend-visible completion signal yet.
 
 ## Deployment
 
