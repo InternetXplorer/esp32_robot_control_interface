@@ -1,4 +1,13 @@
-# Android BLE Motor Controller PWA
+# Historical Android BLE Motor Controller PWA plan
+
+This is the original planning record, not current implementation guidance. Its
+BiMotor Car name, two motor characteristics, UUIDs and disconnect assumptions
+predate the Wheeled Robot command protocol. Use [README.md](README.md),
+`src/domain/encode.ts` and `src/ble/client.ts` for current behavior and future
+controls. Core behavior registration is independent of UI exposure; see the
+firmware [authoring guide](../esp32-rust-journey-code/docs/adding-autonomy-behaviors.md).
+
+The original plan follows unchanged.
 
 
 ## Context
