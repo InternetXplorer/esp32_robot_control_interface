@@ -8,6 +8,7 @@ import {
 import { BleClientError, normalizeBleError } from './errors';
 import {
   encodeDriveUntilObstacleCommand,
+  encodeDriveUntilObstacleAndReturnCommand,
   encodeDriveCommand,
   encodeResetOriginCommand,
   encodeReturnToOriginCommand,
@@ -23,6 +24,7 @@ export interface BleMotorClient {
   disconnect(): Promise<void>;
   writeCommand(command: DriveCommand): Promise<void>;
   driveUntilObstacle(stopDistanceMm: number): Promise<void>;
+  driveUntilObstacleAndReturn(stopDistanceMm: number): Promise<void>;
   returnToOrigin(): Promise<void>;
   resetOrigin(): Promise<void>;
   emergencyStop(): Promise<void>;
@@ -40,6 +42,7 @@ export type RobotDiagnostics = {
     | 'safety-off'
     | 'safety-on'
     | 'move-until-obstacle'
+    | 'move-until-obstacle-and-return'
     | 'unknown';
   odometryStale: boolean;
   xMm: number;
@@ -64,7 +67,8 @@ const diagnosticLastRequests = [
   'reset-origin',
   'safety-off',
   'safety-on',
-  'move-until-obstacle'
+  'move-until-obstacle',
+  'move-until-obstacle-and-return'
 ] as const;
 const diagnosticSafetyInterventions = [
   'disabled',
@@ -246,6 +250,13 @@ export class WebBleMotorClient implements BleMotorClient {
 
   async resetOrigin(): Promise<void> {
     await this.writePacket(encodeResetOriginCommand(), 'reset-origin');
+  }
+
+  async driveUntilObstacleAndReturn(stopDistanceMm: number): Promise<void> {
+    await this.writePacket(
+      encodeDriveUntilObstacleAndReturnCommand(stopDistanceMm),
+      'drive-until-obstacle-and-return'
+    );
   }
 
   async emergencyStop(): Promise<void> {
