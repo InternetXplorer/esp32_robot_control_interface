@@ -5,6 +5,7 @@ type Props = {
   disabled: boolean;
   onDriveUntilObstacle: () => Promise<void>;
   onDriveUntilObstacleAndReturn: () => Promise<void>;
+  onDriveUntilObstacleTurnRightAndDrive: () => Promise<void>;
   onReturnToOrigin: () => Promise<void>;
 };
 
@@ -12,6 +13,7 @@ export const AutonomyPanel = ({
   disabled,
   onDriveUntilObstacle,
   onDriveUntilObstacleAndReturn,
+  onDriveUntilObstacleTurnRightAndDrive,
   onReturnToOrigin
 }: Props) => {
   const [isSending, setIsSending] = useState(false);
@@ -31,6 +33,15 @@ export const AutonomyPanel = ({
 
   return (
     <section className={`${styles.shell} ${disabled ? styles.disabled : ''}`}>
+      <button
+        className={styles.commandButton}
+        disabled={disabled || isSending}
+        onClick={() => void sendCommand(onDriveUntilObstacleTurnRightAndDrive)}
+        type="button"
+      >
+        <span className={styles.label}>Drive, turn right, then drive</span>
+        <span className={styles.detail}>Stop 20 cm away from each obstacle</span>
+      </button>
       <button
         className={styles.commandButton}
         disabled={disabled || isSending}

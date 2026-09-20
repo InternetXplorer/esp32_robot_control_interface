@@ -6,6 +6,7 @@ const RETURN_TO_ORIGIN_COMMAND = 0x02;
 const RESET_ORIGIN_COMMAND = 0x03;
 const DRIVE_UNTIL_OBSTACLE_COMMAND = 0x06;
 const DRIVE_UNTIL_OBSTACLE_AND_RETURN_COMMAND = 0x07;
+const DRIVE_UNTIL_OBSTACLE_TURN_RIGHT_AND_DRIVE_COMMAND = 0x08;
 
 export const encodeStopCommand = (): ArrayBuffer => Uint8Array.of(STOP_COMMAND).buffer;
 
@@ -44,3 +45,6 @@ export const encodeDriveUntilObstacleCommand = (stopDistanceMm: number): ArrayBu
 
 export const encodeDriveUntilObstacleAndReturnCommand = (stopDistanceMm: number): ArrayBuffer =>
   encodeObstacleCommand(DRIVE_UNTIL_OBSTACLE_AND_RETURN_COMMAND, stopDistanceMm);
+
+export const encodeDriveUntilObstacleTurnRightAndDriveCommand = (stopDistanceMm: number): ArrayBuffer =>
+  encodeObstacleCommand(DRIVE_UNTIL_OBSTACLE_TURN_RIGHT_AND_DRIVE_COMMAND, stopDistanceMm);
