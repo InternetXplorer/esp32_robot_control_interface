@@ -243,6 +243,19 @@ export const App = () => {
     }
   };
 
+  const driveUntilObstacleTurnRightAndDrive = async () => {
+    if (!isConnected) {
+      return;
+    }
+
+    rateLimiter.stop();
+    try {
+      await bleClient.driveUntilObstacleTurnRightAndDrive(AUTONOMY_OBSTACLE_STOP_DISTANCE_MM);
+    } catch (error) {
+      setDisconnected(error instanceof BleClientError ? error.category : 'write-failed');
+    }
+  };
+
   const resetOrigin = async () => {
     if (!isConnected) {
       return;
@@ -333,6 +346,7 @@ export const App = () => {
             disabled={!isConnected}
             onDriveUntilObstacle={driveUntilObstacle}
             onDriveUntilObstacleAndReturn={driveUntilObstacleAndReturn}
+            onDriveUntilObstacleTurnRightAndDrive={driveUntilObstacleTurnRightAndDrive}
             onReturnToOrigin={returnToOrigin}
           />
         )}

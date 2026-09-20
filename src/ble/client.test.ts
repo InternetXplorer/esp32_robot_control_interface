@@ -72,6 +72,14 @@ describe('decodeDiagnostics', () => {
     });
   });
 
+  it('labels the obstacle-right-obstacle request', () => {
+    const packet = [3, 0, 8, 0, 1, 0, 0, 0, ...Array(16).fill(0)];
+
+    expect(decodeDiagnostics(view(packet))).toMatchObject({
+      lastRequest: 'move-until-obstacle-turn-right-and-move-until-obstacle'
+    });
+  });
+
   it('accepts additive revisions that preserve the v2 diagnostic prefix', () => {
     const packet = [3, 0, 4, 0, 0, 0, 0, 0, ...Array(16).fill(0), 99, 100];
     packet[0] = 4;

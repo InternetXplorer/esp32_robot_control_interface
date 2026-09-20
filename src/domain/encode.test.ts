@@ -1,5 +1,6 @@
 import {
   encodeDriveUntilObstacleCommand,
+  encodeDriveUntilObstacleTurnRightAndDriveCommand,
   encodeDriveCommand,
   encodeResetOriginCommand,
   encodeReturnToOriginCommand,
@@ -46,5 +47,11 @@ describe('encodeDriveUntilObstacleCommand', () => {
     expect(() => encodeDriveUntilObstacleCommand(-1)).toThrow(RangeError);
     expect(() => encodeDriveUntilObstacleCommand(65_536)).toThrow(RangeError);
     expect(() => encodeDriveUntilObstacleCommand(12.5)).toThrow(RangeError);
+  });
+});
+
+describe('encodeDriveUntilObstacleTurnRightAndDriveCommand', () => {
+  it('encodes the stop distance as an unsigned little-endian value', () => {
+    expect(toBytes(encodeDriveUntilObstacleTurnRightAndDriveCommand(200))).toEqual([0x08, 0xc8, 0x00]);
   });
 });
