@@ -122,9 +122,9 @@ export function MapPanel({
       for (let x = 0; x < 200; x++) {
         const value = evidence?.[y * 200 + x] ?? 0;
         const color =
-          value >= 3
+          value >= (map ? new DataView(map.buffer, map.byteOffset).getInt8(52) : 3)
             ? [240, 121, 89]
-            : value <= -2
+            : value <= (map ? new DataView(map.buffer, map.byteOffset).getInt8(53) : -2)
               ? [210, 227, 218]
               : [43, 53, 66];
         const p = ((199 - y) * 200 + x) * 4;
@@ -138,7 +138,7 @@ export function MapPanel({
     ctx.moveTo(100, 97);
     ctx.lineTo(100, 103);
     ctx.stroke();
-    if (status) {
+    if (status && showLive.current) {
       ctx.save();
       ctx.translate(100 + status.x / 100, 100 - status.y / 100);
       ctx.rotate((-status.heading * Math.PI) / 180);

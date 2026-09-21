@@ -58,9 +58,17 @@ export function validateMap(bytes: Uint8Array): void {
     bytes.slice(54, 64).some((v) => v !== 0)
   )
     throw new Error('Unsupported map format.');
+  const minimum=view.getInt8(48), maximum=view.getInt8(49), free=view.getInt8(53), occupied=view.getInt8(52);
+  const front=view.getUint16(24,true),rear=view.getUint16(26,true),left=view.getUint16(28,true),right=view.getUint16(30,true);
+  if(!front||!rear||!left||!right || Math.ceil(Math.hypot(Math.max(front,rear),Math.max(left,right)))+view.getUint16(36,true)>1000 ||
+    Math.abs(view.getInt16(32,true))>1000 || Math.abs(view.getInt16(34,true))>1000 ||
+    view.getUint16(38,true)===0 || view.getUint16(38,true)>60000 || view.getUint16(40,true)===0 ||
+    view.getUint16(40,true)>=view.getUint16(42,true) || view.getUint16(42,true)>4000 ||
+    minimum>=free || free>=0 || occupied<=0 || occupied>maximum ||view.getInt8(50)<=0||view.getInt8(51)>=0)
+    throw new Error('Invalid acquisition configuration.');
   if (
     new Int8Array(bytes.buffer, bytes.byteOffset + MAP_HEADER, 40000).some(
-      (v) => v < -8 || v > 8
+      (v) => v < minimum || v > maximum
     )
   )
     throw new Error('Invalid occupancy evidence.');
