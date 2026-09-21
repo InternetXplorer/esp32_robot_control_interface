@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { RobotDiagnostics, WebBleMotorClient } from '../ble/client';
 import { BleClientError } from '../ble/errors';
 import { CommandRateLimiter } from '../domain/rateLimiter';
-import { zeroCommand } from '../domain/motor';
+import { DriveCommand } from '../domain/motor';
 import { useControllerStore } from '../state/controllerStore';
 import { AutonomyPanel } from '../components/AutonomyPanel';
 import { ConnectionPanel } from '../components/ConnectionPanel';
@@ -119,14 +119,16 @@ export const App = () => {
     const stopForVisibility = () => {
       if (document.visibilityState === 'hidden' && isConnected && !bleClient.explorationConfirmed) {
         emergencyResetUi();
-        rateLimiter.setDesired(zeroCommand());
+        rateLimiter.stop();
+        void bleClient.emergencyStop().catch(() => undefined);
       }
     };
 
     const stopForExit = () => {
       if (isConnected && !bleClient.explorationConfirmed) {
         emergencyResetUi();
-        rateLimiter.setDesired(zeroCommand());
+        rateLimiter.stop();
+        void bleClient.emergencyStop().catch(() => undefined);
       }
     };
 
@@ -276,6 +278,10 @@ export const App = () => {
     setMode(nextMode);
     bleClient.takeManualControl();
   };
+  const manualCommand = (command: DriveCommand) => {
+    if (command.left !== 0 || command.right !== 0) bleClient.takeManualControl();
+    setDesiredCommand(command);
+  };
 
   return (
     <main className={styles.shell}>
@@ -323,19 +329,19 @@ export const App = () => {
           <JoystickPad
             disabled={!isConnected}
             resetToken={resetToken}
-            onCommandChange={setDesiredCommand}
+            onCommandChange={manualCommand}
           />
         ) : mode === 'direct' ? (
           <MotorSliders
             disabled={!isConnected}
             resetToken={resetToken}
-            onCommandChange={setDesiredCommand}
+            onCommandChange={manualCommand}
           />
         ) : mode === 'test' ? (
           <MotionTestButtons
             disabled={!isConnected}
             resetToken={resetToken}
-            onCommandChange={setDesiredCommand}
+            onCommandChange={manualCommand}
           />
         ) : (
           <AutonomyPanel
@@ -355,3 +361,4 @@ export const App = () => {
     </main>
   );
 };
+
