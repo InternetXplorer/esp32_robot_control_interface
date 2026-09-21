@@ -78,7 +78,8 @@ export function importMap(text: string): Uint8Array {
     file.frame?.x !== 'forward' ||
     file.frame?.y !== 'left' ||
     file.frame?.heading !== 'counterclockwise' ||
-    file.frame?.unit !== 'millimetres' || JSON.stringify(file.frame?.start)!=='[0,0,0]' ||
+    file.frame?.unit !== 'millimetres' ||
+    JSON.stringify(file.frame?.start) !== '[0,0,0]' ||
     layer?.kind !== 'occupancy-evidence' ||
     layer?.encoding !== 'signed-int8' ||
     !Array.isArray(layer.data) ||

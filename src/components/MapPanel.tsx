@@ -122,9 +122,13 @@ export function MapPanel({
       for (let x = 0; x < 200; x++) {
         const value = evidence?.[y * 200 + x] ?? 0;
         const color =
-          value >= (map ? new DataView(map.buffer, map.byteOffset).getInt8(52) : 3)
+          value >=
+          (map ? new DataView(map.buffer, map.byteOffset).getInt8(52) : 3)
             ? [240, 121, 89]
-            : value <= (map ? new DataView(map.buffer, map.byteOffset).getInt8(53) : -2)
+            : value <=
+                (map
+                  ? new DataView(map.buffer, map.byteOffset).getInt8(53)
+                  : -2)
               ? [210, 227, 218]
               : [43, 53, 66];
         const p = ((199 - y) * 200 + x) * 4;

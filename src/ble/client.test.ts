@@ -1,16 +1,61 @@
-import { describe, expect, it } from 'vitest';
-import { decodeDiagnostics } from './client';
+import { describe, expect, it, vi } from 'vitest';
+import { decodeDiagnostics, WebBleMotorClient } from './client';
+
+describe('exploration ownership', () => {
+  function connectedClient() {
+    const client = new WebBleMotorClient();
+    const writeValue = vi.fn().mockResolvedValue(undefined);
+    const disconnect = vi.fn();
+    Object.assign(client, {
+      server: { connected: true, disconnect },
+      commandCharacteristic: { writeValue }
+    });
+    return { client, writeValue, disconnect };
+  }
+  it('drops a joystick command queued before exploration starts', async () => {
+    const { client, writeValue } = connectedClient();
+    vi.spyOn(client.mapping, 'command').mockResolvedValue(undefined);
+    const drive = client.writeCommand({ left: 40, right: 40 });
+    await client.explore();
+    await drive;
+    expect(writeValue).not.toHaveBeenCalled();
+    expect(client.explorationConfirmed).toBe(true);
+  });
+  it('a late start acknowledgement cannot undo Stop ownership', async () => {
+    const { client, writeValue } = connectedClient();
+    let acknowledge!: () => void;
+    vi.spyOn(client.mapping, 'command').mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          acknowledge = resolve;
+        })
+    );
+    const start = client.explore();
+    await client.emergencyStop();
+    acknowledge();
+    await start;
+    expect(client.explorationConfirmed).toBe(false);
+    expect(writeValue).toHaveBeenCalledOnce();
+  });
+  it.each([false, true])(
+    'disconnect preserves only confirmed exploration (%s)',
+    async (confirmed) => {
+      const { client, writeValue, disconnect } = connectedClient();
+      client.explorationConfirmed = confirmed;
+      await client.disconnect();
+      expect(disconnect).toHaveBeenCalledOnce();
+      expect(writeValue).toHaveBeenCalledTimes(confirmed ? 0 : 1);
+    }
+  );
+});
 
 const view = (bytes: number[]) => new DataView(Uint8Array.from(bytes).buffer);
 
 describe('decodeDiagnostics', () => {
   it('decodes the firmware v2 diagnostic packet', () => {
     const packet = [
-      2, 1, 2, 0, 1, 3, 1, 0,
-      0x85, 0xff, 0xff, 0xff,
-      0xc8, 0x01, 0x00, 0x00,
-      0x60, 0xea, 0x00, 0x00,
-      0x7b, 0x00, 0, 0
+      2, 1, 2, 0, 1, 3, 1, 0, 0x85, 0xff, 0xff, 0xff, 0xc8, 0x01, 0x00, 0x00,
+      0x60, 0xea, 0x00, 0x00, 0x7b, 0x00, 0, 0
     ];
 
     expect(decodeDiagnostics(view(packet))).toEqual({
@@ -29,10 +74,8 @@ describe('decodeDiagnostics', () => {
 
   it('keeps accepting the original v1 diagnostic packet', () => {
     const packet = [
-      1, 0, 1, 1,
-      0x0a, 0x00, 0x00, 0x00,
-      0xec, 0xff, 0xff, 0xff,
-      0x30, 0xf8, 0xff, 0xff
+      1, 0, 1, 1, 0x0a, 0x00, 0x00, 0x00, 0xec, 0xff, 0xff, 0xff, 0x30, 0xf8,
+      0xff, 0xff
     ];
 
     expect(decodeDiagnostics(view(packet))).toEqual({
@@ -51,11 +94,8 @@ describe('decodeDiagnostics', () => {
 
   it('decodes the firmware v3 diagnostic packet and its new fields', () => {
     const packet = [
-      3, 0, 6, 0, 1, 4, 0, 1,
-      0x64, 0x00, 0x00, 0x00,
-      0x38, 0xff, 0xff, 0xff,
-      0x28, 0x23, 0x00, 0x00,
-      0xff, 0xff, 0, 0
+      3, 0, 6, 0, 1, 4, 0, 1, 0x64, 0x00, 0x00, 0x00, 0x38, 0xff, 0xff, 0xff,
+      0x28, 0x23, 0x00, 0x00, 0xff, 0xff, 0, 0
     ];
 
     expect(decodeDiagnostics(view(packet))).toEqual({
