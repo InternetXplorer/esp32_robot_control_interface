@@ -1,0 +1,7 @@
+.panel { padding: 1.25rem; border: 1px solid #425061; border-radius: 1rem; background: #192330; color: #edf3f8; }
+.panel p { line-height: 1.5; }
+.map { width: 100%; max-width: 36rem; aspect-ratio: 1; border: 2px solid #77899b; image-rendering: pixelated; }
+.actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1rem; }
+.actions button, .actions select { padding: .7rem; border-radius: .5rem; }
+.panel input[type='checkbox'] { margin-right: .5rem; }
+.panel progress { width: 100%; margin-top: 1rem; }

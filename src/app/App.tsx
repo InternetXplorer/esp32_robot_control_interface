@@ -13,6 +13,7 @@ import { MotorSliders } from '../components/MotorSliders';
 import { RobotPose } from '../components/RobotPose';
 import { StatusBar } from '../components/StatusBar';
 import { StopButton } from '../components/StopButton';
+import { MapPanel } from '../components/MapPanel';
 import styles from './App.module.css';
 
 const buildInfo = __APP_BUILD_INFO__;
@@ -116,14 +117,14 @@ export const App = () => {
 
   useEffect(() => {
     const stopForVisibility = () => {
-      if (document.visibilityState === 'hidden' && isConnected) {
+      if (document.visibilityState === 'hidden' && isConnected && !bleClient.explorationConfirmed) {
         emergencyResetUi();
         rateLimiter.setDesired(zeroCommand());
       }
     };
 
     const stopForExit = () => {
-      if (isConnected) {
+      if (isConnected && !bleClient.explorationConfirmed) {
         emergencyResetUi();
         rateLimiter.setDesired(zeroCommand());
       }
@@ -192,13 +193,7 @@ export const App = () => {
     }
 
     try {
-      // Do not bypass the limiter here. A slider write can still be awaiting
-      // its GATT response; the limiter coalesces the requested zero and sends
-      // it immediately after that write instead of issuing concurrent ATT
-      // operations. The UI reset above also triggers the normal desired-
-      // command effect, which deduplicates this same zero command.
-      rateLimiter.setDesired(zeroCommand());
-      await rateLimiter.flushNow();
+      await bleClient.emergencyStop();
     } catch (error) {
       setDisconnected(error instanceof BleClientError ? error.category : 'write-failed');
     }
@@ -279,6 +274,7 @@ export const App = () => {
     }
 
     setMode(nextMode);
+    bleClient.takeManualControl();
   };
 
   return (
@@ -352,6 +348,7 @@ export const App = () => {
         )}
       </section>
       <StopButton onPress={() => void stop()} />
+      <MapPanel client={bleClient} connected={isConnected} beforeStart={() => { rateLimiter.stop(); emergencyResetUi(); }} onStop={stop} />
       <footer className={styles.buildInfo}>
         v{buildInfo.version} - {buildInfo.branch} - {buildInfo.commit}
       </footer>

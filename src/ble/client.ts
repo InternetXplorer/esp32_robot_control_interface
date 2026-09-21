@@ -16,6 +16,7 @@ import {
   encodeStopCommand
 } from '../domain/encode';
 import { DriveCommand } from '../domain/motor';
+import { MappingClient } from './mapping';
 
 export interface BleMotorClient {
   isSupported(): boolean;
@@ -135,6 +136,27 @@ const debug = (...args: unknown[]): void => {
 };
 
 export class WebBleMotorClient implements BleMotorClient {
+  explorationConfirmed = false;
+  private drivingSuspended = false;
+  private commandGeneration = 0;
+  readonly mapping = new MappingClient(write => this.enqueueWrite(write));
+  private enqueueWrite(write: () => Promise<void>): Promise<void> {
+    const result = this.writeQueue.then(write);
+    this.writeQueue = result.catch(() => undefined);
+    return result;
+  }
+  async explore(resume = false): Promise<void> {
+    this.drivingSuspended = true;
+    const generation = ++this.commandGeneration;
+    try {
+      await this.mapping.command(resume ? 3 : 1);
+      if (generation === this.commandGeneration) this.explorationConfirmed = true;
+    } catch (error) { if (generation === this.commandGeneration) this.drivingSuspended = false; throw error; }
+  }
+  takeManualControl(): void {
+    this.commandGeneration++; this.mapping.cancel();
+    this.drivingSuspended = false; this.explorationConfirmed = false;
+  }
   private device: BluetoothDevice | null = null;
   private server: BluetoothRemoteGATTServer | null = null;
   private commandCharacteristic: BluetoothRemoteGATTCharacteristic | null = null;
@@ -228,7 +250,7 @@ export class WebBleMotorClient implements BleMotorClient {
     if (this.server?.connected) {
       this.suppressDisconnectEvent = true;
       try {
-        await this.emergencyStop();
+        if (!this.explorationConfirmed) await this.emergencyStop();
       } catch (error) {
         debug('best-effort stop before disconnect failed', error);
       }
@@ -238,6 +260,7 @@ export class WebBleMotorClient implements BleMotorClient {
   }
 
   async writeCommand(command: DriveCommand): Promise<void> {
+    if (this.drivingSuspended) return;
     await this.writePacket(encodeDriveCommand(command), 'drive', command);
   }
 
@@ -271,6 +294,7 @@ export class WebBleMotorClient implements BleMotorClient {
   }
 
   async emergencyStop(): Promise<void> {
+    this.takeManualControl();
     if (!this.server?.connected) {
       return;
     }
@@ -291,7 +315,9 @@ export class WebBleMotorClient implements BleMotorClient {
   }
 
   private async writePacket(packet: ArrayBuffer, label: string, command?: DriveCommand): Promise<void> {
+    const generation = this.commandGeneration;
     const write = this.writeQueue.then(async () => {
+      if (label === 'drive' && (generation !== this.commandGeneration || this.drivingSuspended)) return;
       if (!this.server?.connected || !this.commandCharacteristic) {
         throw new BleClientError('gatt-disconnected', 'Device is not connected.');
       }
@@ -340,6 +366,12 @@ export class WebBleMotorClient implements BleMotorClient {
     this.server = server;
     this.commandCharacteristic = commandCharacteristic;
     try {
+      await this.mapping.connect(service);
+      const status = await this.mapping.status();
+      this.explorationConfirmed = status.active;
+      this.drivingSuspended = status.active;
+    } catch (error) { debug('mapping unavailable', error); this.mapping.disconnect(); }
+    try {
       const diagnosticsCharacteristic = await service.getCharacteristic(DIAGNOSTICS_CHARACTERISTIC_UUID);
       await diagnosticsCharacteristic.startNotifications();
       diagnosticsCharacteristic.addEventListener('characteristicvaluechanged', this.handleDiagnostics);
@@ -379,6 +411,10 @@ export class WebBleMotorClient implements BleMotorClient {
   };
 
   private clearSession(): void {
+    this.mapping.disconnect();
+    this.commandGeneration++;
+    this.drivingSuspended = false;
+    this.explorationConfirmed = false;
     if (this.device) {
       this.device.removeEventListener('gattserverdisconnected', this.handleDisconnected);
     }
