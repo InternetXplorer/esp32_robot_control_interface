@@ -128,6 +128,25 @@ function robot(fragmentSize = 12) {
   };
 }
 describe('mapping transport', () => {
+  it('identifies motor-command interruptions and allows a subsequent request', async () => {
+    const r = robot();
+    await r.client.connect(r.service);
+    r.setIntercept((req) => {
+      if (req.getUint8(1) !== 7) return false;
+      const bytes = new Uint8Array(20);
+      bytes.set(new Uint8Array(req.buffer).slice(0, 4));
+      bytes[4] = 3;
+      r.response.notify(bytes);
+      return true;
+    });
+    await expect(r.client.restore(r.bytes)).rejects.toThrow(
+      'operation 7 (3): interrupted'
+    );
+    expect(r.client.busy).toBe(false);
+    r.setIntercept(undefined);
+    await r.client.restore(r.bytes);
+    expect(r.staging).toEqual(r.bytes);
+  });
   it.each([12, 236])(
     'saves and restores at %i-byte fragment size',
     async (size) => {

@@ -157,6 +157,20 @@ export class WebBleMotorClient implements BleMotorClient {
     this.commandGeneration++; this.mapping.cancel();
     this.drivingSuspended = false; this.explorationConfirmed = false;
   }
+  async restoreMap(bytes: Uint8Array, progress?: (fraction: number) => void): Promise<void> {
+    this.drivingSuspended = true;
+    const generation = ++this.commandGeneration;
+    try {
+      // This acknowledgement comes from the control loop, unlike a GATT Stop
+      // write acknowledgement. Upload cannot overtake the application of Stop.
+      await this.mapping.command(2);
+      if (generation !== this.commandGeneration) throw new Error('Map operation cancelled.');
+      this.explorationConfirmed = false;
+      await this.mapping.restore(bytes, progress);
+    } finally {
+      if (generation === this.commandGeneration) this.drivingSuspended = false;
+    }
+  }
   private device: BluetoothDevice | null = null;
   private server: BluetoothRemoteGATTServer | null = null;
   private commandCharacteristic: BluetoothRemoteGATTCharacteristic | null = null;

@@ -37,6 +37,46 @@ describe('exploration ownership', () => {
     expect(client.explorationConfirmed).toBe(false);
     expect(writeValue).toHaveBeenCalledOnce();
   });
+  it('waits for the control-loop pause acknowledgement before restoring', async () => {
+    const { client, writeValue } = connectedClient();
+    let acknowledge!: () => void;
+    const pause = vi.spyOn(client.mapping, 'command').mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          acknowledge = resolve;
+        })
+    );
+    const restore = vi
+      .spyOn(client.mapping, 'restore')
+      .mockResolvedValue(undefined);
+    const bytes = new Uint8Array(20);
+    const task = client.restoreMap(bytes);
+    await client.writeCommand({ left: 40, right: 40 });
+    expect(writeValue).not.toHaveBeenCalled();
+    expect(pause).toHaveBeenCalledWith(2);
+    expect(restore).not.toHaveBeenCalled();
+    acknowledge();
+    await task;
+    expect(restore).toHaveBeenCalledWith(bytes, undefined);
+  });
+  it('Stop during restore preparation prevents the upload', async () => {
+    const { client } = connectedClient();
+    let acknowledge!: () => void;
+    vi.spyOn(client.mapping, 'command').mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          acknowledge = resolve;
+        })
+    );
+    const restore = vi
+      .spyOn(client.mapping, 'restore')
+      .mockResolvedValue(undefined);
+    const task = client.restoreMap(new Uint8Array(20));
+    await client.emergencyStop();
+    acknowledge();
+    await expect(task).rejects.toThrow('cancelled');
+    expect(restore).not.toHaveBeenCalled();
+  });
   it.each([false, true])(
     'disconnect preserves only confirmed exploration (%s)',
     async (confirmed) => {

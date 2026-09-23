@@ -26,7 +26,8 @@ const stopReasons = [
   'stalled',
   'obstacle safety disabled',
   'control fault',
-  'three scans without useful progress'
+  'three scans without useful progress',
+  'turning area is no longer confirmed clear (obstacle evidence or position drift)'
 ];
 export type MapStatus = {
   phase: string;
@@ -115,6 +116,9 @@ export class MappingClient {
   busy = false;
   available = false;
   fragmentSize = 12;
+  get cancellationGeneration(): number {
+    return this.epoch;
+  }
   constructor(private enqueue: (write: () => Promise<void>) => Promise<void>) {}
   async connect(service: BluetoothRemoteGATTService): Promise<void> {
     this.requestCharacteristic =
@@ -162,7 +166,11 @@ export class MappingClient {
       return;
     }
     if (v.getUint8(4) !== 0)
-      p.reject(new Error(`Robot refused map request (${v.getUint8(4)}).`));
+      p.reject(
+        new Error(
+          `Robot refused map operation ${p.op} (${v.getUint8(4)}): ${v.getUint8(4) === 3 ? 'interrupted by a motor command or Stop' : v.getUint8(4) === 2 ? 'request queue full' : 'precondition or map data rejected'}.`
+        )
+      );
     else if (p.offset === undefined || v.getUint16(5, true) === p.offset)
       p.resolve(v);
   };
@@ -239,12 +247,14 @@ export class MappingClient {
     target: [number, number] | null;
     extents: number[];
     reason: string;
+    scanDegrees: number;
   }> {
     const v = await this.rpc(12);
     return {
       target: v.getUint8(5) ? [v.getInt16(6, true), v.getInt16(8, true)] : null,
       extents: [10, 12, 14, 16].map((offset) => v.getUint16(offset, true)),
-      reason: stopReasons[v.getUint8(18)] ?? 'unknown'
+      reason: stopReasons[v.getUint8(18)] ?? 'unknown',
+      scanDegrees: v.getUint8(19) * 2
     };
   }
   async refreshTile(

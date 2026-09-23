@@ -30,12 +30,17 @@ export function MapPanel({
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [downloadUrl, setDownloadUrl] = useState('');
+  const actionBusy = useRef(false);
+  const pollTask = useRef<Promise<void> | null>(null);
   const [updated, setUpdated] = useState(0);
   const [geometry, setGeometry] = useState<{
     target: [number, number] | null;
     extents: number[];
     reason: string;
-  }>({ target: null, extents: [120, 100, 90, 90], reason: '' });
+    scanDegrees: number;
+  }>({ target: null, extents: [120, 100, 90, 90], reason: '', scanDegrees: 0 });
   const live = useRef<{
     map: Uint8Array | null;
     revision: number;
@@ -45,12 +50,30 @@ export function MapPanel({
   const complete = useRef<Uint8Array | null>(null);
   const showLive = useRef(true);
   useEffect(() => {
-    if (connected)
+    setStatus(null);
+    if (connected) {
       live.current = { map: null, revision: 0, cursor: 0, passRevision: 0 };
+      showLive.current = false;
+    }
   }, [connected]);
+  useEffect(
+    () => () => {
+      if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+    },
+    [downloadUrl]
+  );
   const displayComplete = (bytes: Uint8Array) => {
     complete.current = bytes;
     setMap(bytes);
+  };
+  const displayLive = (bytes: Uint8Array) => {
+    const revision = new DataView(bytes.buffer, bytes.byteOffset).getUint32(
+      16,
+      true
+    );
+    live.current = { map: bytes, revision, cursor: 0, passRevision: revision };
+    showLive.current = true;
+    displayComplete(bytes);
   };
   const refreshSaved = () => listMaps().then(setSaved);
   useEffect(() => {
@@ -61,7 +84,15 @@ export function MapPanel({
     let cancelled = false,
       polling = false;
     const poll = async () => {
-      if (polling || client.mapping.busy || busy || document.hidden) return;
+      if (
+        polling ||
+        pollTask.current ||
+        actionBusy.current ||
+        client.mapping.busy ||
+        busy ||
+        document.hidden
+      )
+        return;
       polling = true;
       try {
         const next = await client.mapping.status();
@@ -79,7 +110,10 @@ export function MapPanel({
               cursor: 0,
               passRevision: revision
             };
-            if (showLive.current) displayComplete(snapshot);
+            if (!cancelled && (showLive.current || !complete.current)) {
+              showLive.current = true;
+              displayComplete(snapshot);
+            }
           } else if (
             live.current.map &&
             next.revision !== live.current.revision
@@ -104,8 +138,16 @@ export function MapPanel({
         polling = false;
       }
     };
-    void poll();
-    const timer = setInterval(() => void poll(), 1500);
+    const runPoll = () => {
+      if (pollTask.current) return;
+      const task = poll();
+      pollTask.current = task;
+      void task.finally(() => {
+        if (pollTask.current === task) pollTask.current = null;
+      });
+    };
+    runPoll();
+    const timer = setInterval(runPoll, 1500);
     return () => {
       cancelled = true;
       clearInterval(timer);
@@ -172,14 +214,22 @@ export function MapPanel({
     }
   }, [map, status, geometry]);
   const action = async (fn: () => Promise<void>) => {
+    if (actionBusy.current) return;
+    const generation = client.mapping.cancellationGeneration;
+    actionBusy.current = true;
     setBusy(true);
     setError('');
+    setNotice('');
     setProgress(0);
     try {
+      await pollTask.current;
+      if (generation !== client.mapping.cancellationGeneration)
+        throw new Error('Map operation cancelled.');
       await fn();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
+      actionBusy.current = false;
       setBusy(false);
     }
   };
@@ -197,11 +247,10 @@ export function MapPanel({
     const url = URL.createObjectURL(
       new Blob([exportMap(snapshot)], { type: 'application/json' })
     );
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'room-map.json';
-    a.click();
-    URL.revokeObjectURL(url);
+    setDownloadUrl(url);
+    setNotice(
+      'Export ready. Tap Download room-map.json below to save the file.'
+    );
   };
   const disabled =
     !connected || !client.mapping.available || busy || client.mapping.busy;
@@ -220,6 +269,22 @@ export function MapPanel({
             : 'Waiting for mapping firmware'}
       </p>
       {geometry.reason && <p>{geometry.reason}</p>}
+      {status && (
+        <p>
+          Scan rotation: approximately {geometry.scanDegrees}° (odometry).
+          Position: {status.x}, {status.y} mm; heading:{' '}
+          {Math.round(status.heading)}°.
+        </p>
+      )}
+      <p>
+        {showLive.current
+          ? 'Live robot map'
+          : 'Saved map preview — restore it to resume exploration.'}
+      </p>
+      <p>
+        Mapping stays enabled in every driving mode after starting or restoring
+        a map. Measurements are added whenever the robot is stationary.
+      </p>
       <canvas
         className={styles.map}
         ref={canvas}
@@ -267,7 +332,7 @@ export function MapPanel({
           Pause
         </button>
         <button
-          disabled={disabled || !status?.aligned}
+          disabled={disabled || !status?.aligned || !showLive.current}
           onClick={() =>
             void action(async () => {
               beforeStart();
@@ -284,8 +349,8 @@ export function MapPanel({
           disabled={disabled}
           onClick={() =>
             void action(async () => {
-              showLive.current = true;
-              displayComplete(await client.mapping.snapshot(setProgress));
+              displayLive(await client.mapping.snapshot(setProgress));
+              setNotice('Complete robot map refreshed.');
             })
           }
         >
@@ -305,6 +370,7 @@ export function MapPanel({
                 `Room ${new Date().toLocaleString()}`
               );
               await refreshSaved();
+              setNotice('Map saved on this device.');
             })
           }
         >
@@ -339,6 +405,7 @@ export function MapPanel({
         <select
           value={selected}
           aria-label="Saved map"
+          disabled={busy || client.mapping.busy}
           onChange={(e) => {
             setSelected(e.target.value);
             const savedMap = saved.find((m) => m.id === e.target.value)?.bytes;
@@ -363,11 +430,17 @@ export function MapPanel({
           onClick={() =>
             void action(async () => {
               if (complete.current) {
-                await onStop();
-                await client.mapping.restore(complete.current, setProgress);
+                beforeStart();
+                await client.restoreMap(complete.current, setProgress);
+                // The robot re-confirms the start area on restore. Fetch its
+                // resulting map before applying incremental tile updates.
                 live.current.map = null;
                 showLive.current = true;
+                setStatus(await client.mapping.status());
                 setConfirmed(false);
+                setNotice(
+                  'Map restored on the robot. Exploration can now resume.'
+                );
               }
             })
           }
@@ -376,6 +449,20 @@ export function MapPanel({
         </button>
       </div>
       {error && <p role="alert">{error}</p>}
+      {notice && <p role="status">{notice}</p>}
+      {downloadUrl && (
+        <a
+          href={downloadUrl}
+          download="room-map.json"
+          onClick={() =>
+            setNotice(
+              'Download requested. Check your browser downloads for room-map.json.'
+            )
+          }
+        >
+          Download room-map.json
+        </a>
+      )}
     </section>
   );
 }
