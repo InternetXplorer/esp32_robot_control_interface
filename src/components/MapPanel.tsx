@@ -257,34 +257,14 @@ export function MapPanel({
   return (
     <section className={styles.panel} aria-label="Room exploration">
       <h2>Room exploration</h2>
-      <p>
-        Odometry-based · 20 × 20 m · 10 cm cells. Unknown regions remain
-        unresolved.
-      </p>
       <p role="status">
         {!connected
           ? 'Disconnected — display is stale'
           : status
-            ? `${status.phase}${Date.now() - updated > 5000 ? ' — stale' : ''}`
+            ? `${status.phase}${Date.now() - updated > 5000 ? ' — stale' : ''}${geometry.reason ? ` · ${geometry.reason}` : ''} · scan ${geometry.scanDegrees}° · ${status.x}, ${status.y} mm · ${Math.round(status.heading)}°`
             : 'Waiting for mapping firmware'}
       </p>
-      {geometry.reason && <p>{geometry.reason}</p>}
-      {status && (
-        <p>
-          Scan rotation: approximately {geometry.scanDegrees}° (odometry).
-          Position: {status.x}, {status.y} mm; heading:{' '}
-          {Math.round(status.heading)}°.
-        </p>
-      )}
-      <p>
-        {showLive.current
-          ? 'Live robot map'
-          : 'Saved map preview — restore it to resume exploration.'}
-      </p>
-      <p>
-        Mapping stays enabled in every driving mode after starting or restoring
-        a map. Measurements are added whenever the robot is stationary.
-      </p>
+      {!showLive.current && <p>Saved preview — restore to explore.</p>}
       <canvas
         className={styles.map}
         ref={canvas}
@@ -292,18 +272,13 @@ export function MapPanel({
         height={200}
         aria-label="Occupancy map, positive X right and positive Y up"
       />
-      <p>
-        Light: free · coral: obstacle · dark: unknown. Blue cross: marked start,
-        facing right. Width: 20 m.
-      </p>
       <label>
         <input
           type="checkbox"
           checked={confirmed}
           onChange={(e) => setConfirmed(e.target.checked)}
         />
-        The robot is at the marked starting position and heading, with clear
-        space to turn.
+        At marked start, facing right, with room to turn
       </label>
       <div className={styles.actions}>
         <button

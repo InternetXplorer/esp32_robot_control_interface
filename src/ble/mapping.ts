@@ -11,7 +11,8 @@ export const phases = [
   'sensor-limited',
   'blocked',
   'map-limit',
-  'faulted'
+  'faulted',
+  'recovering'
 ] as const;
 const stopReasons = [
   '',
